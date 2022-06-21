@@ -107,7 +107,7 @@
   {
     buf := Buf().print(text).flip
     def := Parser(buf.in).parse
-    def.dump(Env.cur.out, 0)
+//    def.dump(Env.cur.out, 0)
     return def
   }
 

@@ -14,6 +14,19 @@ using concurrent
 
 @Js const class Fass
 {
-  ** Private ctor.
-  private new make(|This| f) { f(this) }
+  ** Compile the fass source from 'in' into native CSS and write
+  ** results to 'out'.
+  static Void compile(InStream in, OutStream out)
+  {
+    def := Parser(in).parse
+    Compiler(def).compile(out)
+  }
+
+  ** Compile the fass source into native CSS and return as 'Str'.
+  static Str compileStr(Str fass)
+  {
+    buf := StrBuf()
+    Fass.compile(fass.in, buf.out)
+    return buf.toStr
+  }
 }
