@@ -96,7 +96,20 @@
 
   Void testNested()
   {
-    // TODO
+    d := p("div {
+              color: #00f
+              font-weight: bold
+              p {
+                color: #333
+              }
+            }")
+    verifyChildSize(  d, [,], 1)
+    verifySelectors(  d, [0], ["div"])
+    verifyChildSize(  d, [0], 3)
+    verifyDeclaration(d, [0,0], "color",       "#00f")
+    verifyDeclaration(d, [0,1], "font-weight", "bold")
+    verifySelectors(  d, [0,2], ["p"])
+    verifyDeclaration(d, [0,2,0], "color", "#333")
   }
 
 //////////////////////////////////////////////////////////////////////////

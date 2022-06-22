@@ -21,7 +21,45 @@
   ** Compile AST to native CSS on given outstream.
   Void compile(OutStream out)
   {
-    root.children.each |d| { compileDef(d, out) }
+    flatten.each |d| { compileDef(d, out) }
+  }
+
+  ** Flatten all RulesetDefs.
+  private Def[] flatten()
+  {
+    flat := Def[,]
+    root.children.each |d|
+    {
+      // TODO: Ruleset probably needs to be required
+      //       at the root level; but allow for now
+      if (d is RulesetDef) flattenRuleset(d, StrBuf(), flat)
+      else flat.add(d)
+    }
+    return flat
+  }
+
+  ** Flatten given ruleset and add to accumlator list.
+  private Void flattenRuleset(RulesetDef r, StrBuf qs, Def[] acc)
+  {
+    // create a flattened def for each selector
+    r.selectors.each |s|
+    {
+      // append selector to qualified selector prefix
+      qs.join(s, " ")
+
+      f := RulesetDef {
+        it.selectors = [qs.toStr]
+        it.children  = r.children.findAll |k| { k isnot RulesetDef }
+      }
+      acc.add(f)
+
+      // walk child rulesets
+      r.children.findType(RulesetDef#).each |k|
+      {
+        flattenRuleset(k, qs, acc)
+      }
+    }
+
   }
 
   ** Compile Def node to CSS.
