@@ -74,6 +74,13 @@
       ")
 
     verifyCss(
+     "div { p { span { color: #123 }}}",
+     "div p span {
+        color: #123;
+      }
+      ")
+
+    verifyCss(
      "div {
         color: #00f
         font-weight: bold
