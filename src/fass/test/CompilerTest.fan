@@ -22,6 +22,10 @@
   Void testBasics()
   {
     verifyCss(
+      "p { }",
+      "")
+
+    verifyCss(
       "p { color: #fff }",
       "p {
          color: #fff;
@@ -56,6 +60,19 @@
 
   Void testNested()
   {
+    verifyCss(
+     "div {
+        p {
+          span {
+            color: #123
+          }
+        }
+      }",
+     "div p span {
+        color: #123;
+      }
+      ")
+
     verifyCss(
      "div {
         color: #00f
@@ -100,6 +117,27 @@
       }
       h3 ul {
         color: #333;
+      }
+      ")
+
+   verifyCss(
+     "div {
+        color: #00f
+        p {
+          opacity: 0.5
+          span {
+            display: block
+          }
+        }
+      }",
+     "div {
+        color: #00f;
+      }
+      div p {
+        opacity: 0.5;
+      }
+      div p span {
+        display: block;
       }
       ")
   }

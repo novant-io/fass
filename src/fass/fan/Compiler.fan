@@ -69,8 +69,11 @@
     {
       case RulesetDef#:
         RulesetDef r := def
+        decls := r.children.findType(DeclarationDef#)
+        // do not render rule if no declarations
+        if (decls.isEmpty) return
         out.print(r.selectors.join(" ")).printLine(" {")
-        r.children.each |k| { compileDef(k, out) }
+        decls.each |k| { compileDef(k, out) }
         out.printLine("}")
 
       case DeclarationDef#:
