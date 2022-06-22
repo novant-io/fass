@@ -40,7 +40,7 @@
   override Void dump(OutStream out, Int indent)
   {
     out.print(Str.spaces(indent))
-    out.print(selectors.join(" ")).printLine(" {")
+    out.print(selectors.join(", ")).printLine(" {")
     children.each |k| { k.dump(out, indent+2) }
     out.print(Str.spaces(indent)).printLine("}")
   }

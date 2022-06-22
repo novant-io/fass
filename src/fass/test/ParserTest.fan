@@ -41,6 +41,14 @@
     d = p(" h3.some-class   div#foo  #bar { }  ")
     verifyChildSize(d, [,], 1)
     verifySelectors(d, [0], ["h3.some-class div#foo #bar"])
+
+    d = p("a,p {}")
+    verifyChildSize(d, [,], 1)
+    verifySelectors(d, [0], ["a", "p"])
+
+    d = p(" a#foo ,  p.bar,input { } ")
+    verifyChildSize(d, [,], 1)
+    verifySelectors(d, [0], ["a#foo", "p.bar", "input"])
   }
 
 //////////////////////////////////////////////////////////////////////////

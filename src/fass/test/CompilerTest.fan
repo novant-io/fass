@@ -38,6 +38,16 @@
          font-weight: bold;
        }
        ")
+
+    verifyCss(
+      "a.foo, p.bar { color: #fff }",
+      "a.foo {
+         color: #fff;
+       }
+       p.bar {
+         color: #fff;
+       }
+       ")
   }
 
 //////////////////////////////////////////////////////////////////////////
@@ -59,6 +69,36 @@
         font-weight: bold;
       }
       div p {
+        color: #333;
+      }
+      ")
+
+    verifyCss(
+     "div,h3 {
+        color: #00f
+        font-weight: bold
+        p,ul {
+          color: #333
+        }
+      }",
+     "div {
+        color: #00f;
+        font-weight: bold;
+      }
+      div p {
+        color: #333;
+      }
+      div ul {
+        color: #333;
+      }
+      h3 {
+        color: #00f;
+        font-weight: bold;
+      }
+      h3 p {
+        color: #333;
+      }
+      h3 ul {
         color: #333;
       }
       ")

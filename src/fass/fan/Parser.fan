@@ -15,6 +15,7 @@
   identifier,
   openBrace,
   closeBrace,
+  comma,
   colon,
   semicolon,
   eos
@@ -38,6 +39,7 @@
   Bool isIdentifier() { type == TokenType.identifier }
   Bool isOpenBrace()  { type == TokenType.openBrace  }
   Bool isCloseBrace() { type == TokenType.closeBrace }
+  Bool isComma()      { type == TokenType.comma      }
   Bool isColon()      { type == TokenType.colon      }
   Bool isSemicolon()  { type == TokenType.semicolon  }
   Bool isEos()        { type == TokenType.eos        }
@@ -106,9 +108,9 @@
             acc := [start.val]
             while (true)
             {
-              if (token.isIdentifier) { acc.add(token.val); continue }
-              if (token.isOpenBrace) break
-              throw unexpectedToken(token)
+              if (token.isIdentifier) acc.add(token.val)
+              else if (token.isOpenBrace) break
+              else if (!token.isComma) throw unexpectedToken(token)
               token = nextToken
             }
             def := RulesetDef { it.selectors=acc }
@@ -173,6 +175,7 @@
     // exact matches
     if (ch == '{') return Token(TokenType.openBrace,  "{")
     if (ch == '}') return Token(TokenType.closeBrace, "}")
+    if (ch == ',') return Token(TokenType.comma,      ",")
     if (ch == ':') return Token(TokenType.colon,      ":")
     if (ch == ';') return Token(TokenType.semicolon,  ";")
 

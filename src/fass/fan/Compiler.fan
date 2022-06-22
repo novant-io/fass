@@ -32,20 +32,20 @@
     {
       // TODO: Ruleset probably needs to be required
       //       at the root level; but allow for now
-      if (d is RulesetDef) flattenRuleset(d, StrBuf(), flat)
+      if (d is RulesetDef) flattenRuleset(d, "", flat)
       else flat.add(d)
     }
     return flat
   }
 
   ** Flatten given ruleset and add to accumlator list.
-  private Void flattenRuleset(RulesetDef r, StrBuf qs, Def[] acc)
+  private Void flattenRuleset(RulesetDef r, Str prefix, Def[] acc)
   {
     // create a flattened def for each selector
     r.selectors.each |s|
     {
       // append selector to qualified selector prefix
-      qs.join(s, " ")
+      qs := StrBuf().add(prefix).join(s, " ").toStr
 
       f := RulesetDef {
         it.selectors = [qs.toStr]
