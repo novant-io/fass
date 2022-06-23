@@ -55,11 +55,68 @@
   new make(|This| f) { f(this) }
 
   const Str prop
+  Def expr
+
+  override Void dump(OutStream out, Int indent)
+  {
+    out.print(Str.spaces(indent))
+    out.print(prop).print(": ")
+    expr.dump(out, 0)
+    out.printLine("")
+  }
+}
+
+*************************************************************************
+** VarAssignDef
+*************************************************************************
+
+@Js internal class VarAssignDef : Def
+{
+  new make(|This| f) { f(this) }
+
+  VarDef var
+  LiteralDef val
+
+  override Void dump(OutStream out, Int indent)
+  {
+    out.print(Str.spaces(indent))
+    var.dump(out, 0)
+    out.print(": ")
+    val.dump(out, 0)
+    out.printLine("")
+  }
+}
+
+*************************************************************************
+** VarDef
+*************************************************************************
+
+@Js internal class VarDef : Def
+{
+  new make(|This| f) { f(this) }
+
+  const Str name
+
+  override Void dump(OutStream out, Int indent)
+  {
+    out.print(Str.spaces(indent))
+    out.print("\$").print(name)
+  }
+}
+
+*************************************************************************
+** LiteralDef
+*************************************************************************
+
+@Js internal class LiteralDef : Def
+{
+  new make(|This| f) { f(this) }
+
   const Str val
 
   override Void dump(OutStream out, Int indent)
   {
     out.print(Str.spaces(indent))
-    out.print(prop).print(": ").printLine(val)
+    out.print(val)
   }
 }

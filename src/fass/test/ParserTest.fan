@@ -121,6 +121,34 @@
   }
 
 //////////////////////////////////////////////////////////////////////////
+// Vars
+//////////////////////////////////////////////////////////////////////////
+
+  Void testVars()
+  {
+    d := p("\$foo: 10px")
+    verifyVarAssign(d, [0], "foo", "10px")
+
+    d = p("\$foo: 10px;")
+    verifyVarAssign(d, [0], "foo", "10px")
+
+    d = p(" \$foo:10px ;  \$bar : 3em")
+    verifyVarAssign(d, [0], "foo", "10px")
+    verifyVarAssign(d, [1], "bar", "3em")
+
+    d = p("\$foo: 10px
+           \$bar: 3em")
+    verifyVarAssign(d, [0], "foo", "10px")
+    verifyVarAssign(d, [1], "bar", "3em")
+
+    d = p("\$foo: 10px
+           p { padding: \$foo }")
+    verifyVarAssign(d, [0], "foo", "10px")
+    verifySelectors(  d, [1], ["p"])
+    verifyDeclaration(d, [1,0], "padding", "foo")
+  }
+
+//////////////////////////////////////////////////////////////////////////
 // Support
 //////////////////////////////////////////////////////////////////////////
 
@@ -150,7 +178,16 @@
     d := descend(root, path)
     verifyEq(d.typeof, DeclarationDef#)
     verifyEq(d->prop, prop)
-    verifyEq(d->val,  val)
+    if (d->expr is LiteralDef) verifyEq(d->expr->val, val)
+    else verifyEq(d->expr->name, val)
+  }
+
+  private Void verifyVarAssign(Def root, Int[] path, Str name, Str val)
+  {
+    d := descend(root, path)
+    verifyEq(d.typeof, VarAssignDef#)
+    verifyEq(d->var->name, name)
+    verifyEq(d->val->val,  val)
   }
 
   private Def descend(Def root, Int[] path)

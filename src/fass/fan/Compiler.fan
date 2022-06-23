@@ -30,10 +30,18 @@
     flat := Def[,]
     root.children.each |d|
     {
-      // TODO: Ruleset probably needs to be required
-      //       at the root level; but allow for now
-      if (d is RulesetDef) flattenRuleset(d, "", flat)
-      else flat.add(d)
+      switch (d.typeof)
+      {
+        case VarAssignDef#:
+          VarAssignDef v := d
+          varmap[v.var.name] = v.val.val
+
+        case RulesetDef#:
+          flattenRuleset(d, "", flat)
+
+        default:
+          throw Err("Unexpected node '${d.typeof}'")
+      }
     }
     return flat
   }
@@ -78,12 +86,27 @@
 
       case DeclarationDef#:
         DeclarationDef d := def
-        out.print("  ").print(d.prop).print(": ").print(d.val)
+        out.print("  ").print(d.prop).print(": ")
+        if (d.expr is VarDef)
+        {
+          n := d.expr->name
+          v := varmap[n] ?: throw ArgErr("Unknown var '@${n}'")
+          out.print(v)
+        }
+        else
+        {
+          out.print(d.expr->val)
+        }
         out.printLine(";")
+
+      case VarDef#:
+        // vardef does not compile to CSS
+        x := 5
 
       default: throw ArgErr("Unexpected node '${def.typeof}'")
     }
   }
 
-  private Def root    // AST root
+  private Def root                // AST root
+  private Str:Str varmap := [:]   // cache of VarAssignDef name:vals
 }

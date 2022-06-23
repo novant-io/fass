@@ -18,6 +18,7 @@
   comma,
   colon,
   semicolon,
+  var,
   eos
 }
 
@@ -42,6 +43,7 @@
   Bool isComma()      { type == TokenType.comma      }
   Bool isColon()      { type == TokenType.colon      }
   Bool isSemicolon()  { type == TokenType.semicolon  }
+  Bool isVar()        { type == TokenType.var        }
   Bool isEos()        { type == TokenType.eos        }
 
   override Str toStr() { "${type}='${val}'" }
@@ -90,17 +92,18 @@
           token = nextToken
           if (token.isColon)
           {
-            token = nextToken(TokenType.identifier)
+            token = nextToken
+            Def? expr
+            if (token.isIdentifier) expr = LiteralDef { it.val=token.val }
+            else if (token.isVar) expr = VarDef { it.name=token.val }
+            else throw unexpectedToken(token)
             def := DeclarationDef
             {
               it.prop = start.val
-              it.val  = token.val
+              it.expr = expr
             }
+            consumeSemicolon
             parent.children.add(def)
-
-            // eat trailing semicolon if present
-            token = nextToken
-            if (!token.isSemicolon) unreadToken(token)
           }
           else
           {
@@ -118,6 +121,15 @@
             stack.push(def)
           }
 
+        case TokenType.var:
+          var := VarDef { it.name = token.val }
+          nextToken(TokenType.colon)
+          token = nextToken(TokenType.identifier)
+          val := LiteralDef { it.val = token.val }
+          consumeSemicolon
+          def := VarAssignDef { it.var=var; it.val=val }
+          parent.children.add(def)
+
         case TokenType.closeBrace:
           last := stack.pop
           // if (last isnot IfDef) throw unmatchedDef(last)
@@ -130,6 +142,13 @@
     if (stack.size > 1) throw parseErr("Missing closing '}'")
 
     return root
+  }
+
+  ** Eat trailing semicolon if present.
+  private Void consumeSemicolon()
+  {
+    token := nextToken
+    if (!token.isSemicolon) unreadToken(token)
   }
 
 //////////////////////////////////////////////////////////////////////////
@@ -179,11 +198,18 @@
     if (ch == ':') return Token(TokenType.colon,      ":")
     if (ch == ';') return Token(TokenType.semicolon,  ";")
 
+    // var
+    if (ch == '\$')
+    {
+      if (!peek.isAlpha) throw unexpectedChar(ch)
+      while (isValidVarChar(peek)) buf.addChar(read)
+      return Token(TokenType.var, buf.toStr)
+    }
+
     // identifier
     if (!isValidIdentiferChar(ch)) throw unexpectedChar(ch)
     buf.addChar(ch)
-    while (isValidIdentiferChar(peek)) buf.addChar(read)
-    while (peek.isSpace) ch = read // eat trailing space
+    while (peek != null && isValidIdentiferChar(peek)) buf.addChar(read)
     // trim whitespace around selectors
     return Token(TokenType.identifier, buf.toStr.split.join(" "))
   }
@@ -197,6 +223,14 @@
     if (ch == '.') return true
     if (ch == '#') return true
     if (ch == ' ') return true
+    return false
+  }
+
+  ** Return 'true' if ch is a valid variable char
+  private Bool isValidVarChar(Int ch)
+  {
+    if (ch.isAlphaNum) return true
+    if (ch == '_') return true
     return false
   }
 
