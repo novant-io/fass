@@ -166,6 +166,21 @@
          padding: 10px;
        }
        ")
+
+    verifyCss(
+      "\$foo: 10px
+       \$bar: #f00
+         p {
+           padding: \$foo
+           span { color: \$bar }
+         }",
+      "p {
+         padding: 10px;
+       }
+       p span {
+         color: #f00;
+       }
+       ")
   }
 
 //////////////////////////////////////////////////////////////////////////
