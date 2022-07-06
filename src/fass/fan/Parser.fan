@@ -63,10 +63,6 @@
   ** Ctor.
   new make(InStream in)
   {
-    // TODO
-    this.podName  = "<pod>"
-    this.filename = "<file>"
-
     this.in = in
   }
 
@@ -248,7 +244,7 @@
   ** Throw ParseErr
   private Err parseErr(Str msg)
   {
-    ParseErr("${msg} [${filename}:${line}]")
+    ParseErr("${msg} [line:${line}]")
   }
 
   ** Throw ParseErr
@@ -271,8 +267,6 @@
 // Fields
 //////////////////////////////////////////////////////////////////////////
 
-  private const Str podName         // podName
-  private const Str filename        // name of file to parse
   private InStream in               // input
   private Int line := 1             // current line
   private Def[] stack := [,]        // AST node stack
