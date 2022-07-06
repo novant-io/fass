@@ -12,6 +12,7 @@
 
 @Js internal enum class TokenType
 {
+  comment,
   identifier,
   openBrace,
   closeBrace,
@@ -37,6 +38,7 @@
   ** Token literval val.
   const Str val
 
+  Bool isComment()    { type == TokenType.comment    }
   Bool isIdentifier() { type == TokenType.identifier }
   Bool isOpenBrace()  { type == TokenType.openBrace  }
   Bool isCloseBrace() { type == TokenType.closeBrace }
@@ -82,6 +84,8 @@
       parent := stack.last
       switch (token.type)
       {
+        case TokenType.comment: continue
+
         case TokenType.identifier:
           start := token
           // first check if this is a declaration
@@ -200,6 +204,20 @@
     ch := read
     while (ch != null && ch.isSpace) ch = read
     if (ch == null) return null
+
+    // comment
+    if (ch == '/' && peek == '*')
+    {
+      read
+      ch = read
+      while (true)
+      {
+        if (ch == '*' && peek == '/') { read; break }
+        buf.addChar(ch)
+        ch = read
+      }
+      return Token(TokenType.comment, buf.toStr)
+    }
 
     // exact matches
     if (ch == '{') return Token(TokenType.openBrace,  "{")
