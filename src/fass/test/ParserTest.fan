@@ -94,6 +94,20 @@
     verifyDeclaration(d, [0,0], "color",       "#00f")
     verifyDeclaration(d, [0,1], "font-weight", "bold")
 
+    d = p("@font-face {
+             font-family: 'Inter'
+             font-style:  normal
+             font-weight: 400
+             src: url('../font/Inter-Regular.woff2') format('woff2')
+           }")
+    verifyChildSize(  d, [,], 1)
+    verifySelectors(  d, [0], ["@font-face"])
+    verifyChildSize(  d, [0], 4)
+    verifyDeclaration(d, [0,0], "font-family", "'Inter'")
+    verifyDeclaration(d, [0,1], "font-style",  "normal")
+    verifyDeclaration(d, [0,2], "font-weight", "400")
+    verifyDeclaration(d, [0,3], "src", "url('../font/Inter-Regular.woff2') format('woff2')")
+
     // missing newline/semicolon
     verifyErr(ParseErr#) { x := p("div { color: #00f font-weight: bold }") }
   }

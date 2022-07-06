@@ -217,16 +217,13 @@
   ** Return 'true' if ch is a valid identifier char
   private Bool isValidIdentiferChar(Int ch)
   {
-    if (ch.isAlphaNum) return true
-    if (ch == '-') return true
-    if (ch == '_') return true
-    if (ch == '.') return true
-    if (ch == '#') return true
-    if (ch == ' ') return true
-    if (ch == '%') return true
-    if (ch == '(') return true
-    if (ch == ')') return true
-    return false
+    if (ch == '{') return false
+    if (ch == '}') return false
+    if (ch == ',') return false
+    if (ch == ':') return false
+    if (ch == ';') return false
+    if (ch == '\n') return false
+    return true
   }
 
   ** Return 'true' if ch is a valid variable char
