@@ -87,15 +87,19 @@
       case DeclarationDef#:
         DeclarationDef d := def
         out.print("  ").print(d.prop).print(": ")
-        if (d.expr is VarDef)
+        d.exprs.each |expr,i|
         {
-          n := d.expr->name
-          v := varmap[n] ?: throw ArgErr("Unknown var '@${n}'")
-          out.print(v)
-        }
-        else
-        {
-          out.print(d.expr->val)
+          if (i > 0) out.print(",")
+          if (expr is VarDef)
+          {
+            n := expr->name
+            v := varmap[n] ?: throw ArgErr("Unknown var '@${n}'")
+            out.print(v)
+          }
+          else
+          {
+            out.print(expr->val)
+          }
         }
         out.printLine(";")
 

@@ -95,8 +95,8 @@
             else throw unexpectedToken(token)
             def := DeclarationDef
             {
-              it.prop = start.val
-              it.expr = expr
+              it.prop  = start.val
+              it.exprs = [expr]
             }
             consumeSemicolon
             parent.children.add(def)
