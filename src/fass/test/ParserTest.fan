@@ -123,6 +123,29 @@
 
     d = p("a { height: calc(100% - 25px) }")
     verifyDeclaration(d, [0,0], "height", ["calc(100% - 25px)"])
+
+    d = p("@font-face { src: url('x.woff2') format('woff2'), url('x.woff') format('woff') }")
+    verifyDeclaration(d, [0,0], "src", [
+      "url('x.woff2') format('woff2')",
+      "url('x.woff') format('woff')"
+    ])
+
+    d = p("@font-face {
+             src: url('x.woff2') format('woff2'), url('x.woff') format('woff')
+           }")
+    verifyDeclaration(d, [0,0], "src", [
+      "url('x.woff2') format('woff2')",
+      "url('x.woff') format('woff')"
+    ])
+
+    d = p("@font-face {
+             src: url('x.woff2') format('woff2'),
+                  url('x.woff') format('woff')
+           }")
+    verifyDeclaration(d, [0,0], "src", [
+      "url('x.woff2') format('woff2')",
+      "url('x.woff') format('woff')"
+    ])
   }
 
 //////////////////////////////////////////////////////////////////////////

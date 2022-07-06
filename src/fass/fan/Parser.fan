@@ -88,15 +88,29 @@
           token = nextToken
           if (token.isColon)
           {
-            token = nextToken
-            Def? expr
-            if (token.isIdentifier) expr = LiteralDef { it.val=token.val }
-            else if (token.isVar) expr = VarDef { it.name=token.val }
-            else throw unexpectedToken(token)
+            exprs := Def[,]
+            Token? last
+            while (true)
+            {
+              canAdd := last == null || last.isComma
+              token = nextToken
+              if (last == null || last.isComma)
+              {
+                if (token.isIdentifier) exprs.add(LiteralDef { it.val=token.val })
+                else if (token.isVar)   exprs.add(VarDef { it.name=token.val })
+                else throw unexpectedToken(token)
+              }
+              else if (!token.isComma)
+              {
+                unreadToken(token)
+                break
+              }
+              last = token
+            }
             def := DeclarationDef
             {
               it.prop  = start.val
-              it.exprs = [expr]
+              it.exprs = exprs
             }
             consumeSemicolon
             parent.children.add(def)

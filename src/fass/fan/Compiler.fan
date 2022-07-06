@@ -89,7 +89,7 @@
         out.print("  ").print(d.prop).print(": ")
         d.exprs.each |expr,i|
         {
-          if (i > 0) out.print(",")
+          if (i > 0) out.print(", ")
           if (expr is VarDef)
           {
             n := expr->name
