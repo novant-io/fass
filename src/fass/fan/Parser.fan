@@ -282,6 +282,11 @@
           while (peek != null && peek.isSpace) ch = read
         }
 
+        // hit a comment
+        if (ch == '/' && peek == '*') break
+        if (ch == '/' && peek == '/') break
+
+        // check line ending or keep going
         if (ch == null || ch == ';' || ch == '\n' || ch == '}') break
         else if (isExprChar(ch)) { buf.addChar(ch); ch = read }
         else throw unexpectedChar(ch)

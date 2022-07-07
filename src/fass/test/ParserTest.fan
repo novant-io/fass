@@ -245,6 +245,23 @@
     verifySelectors(d, [0], ["h1"])
     verifySelectors(d, [1], ["h3"])
 
+    d = p("h1 { color: #f00 } /* color: #222 */
+           h2 { color: #00f /* color: #333 */ }")
+    verifyChildSize(d, [,], 2)
+    verifySelectors(d, [0], ["h1"])
+    verifySelectors(d, [1], ["h2"])
+    verifyDeclaration(d, [0,0], "color", "#f00")
+    verifyDeclaration(d, [1,0], "color", "#00f")
+
+    d = p("h1 {
+             color: #f00 /* color: #222 */
+             background: #00f
+           }")
+    verifyChildSize(d,   [,], 1)
+    verifySelectors(d,   [0], ["h1"])
+    verifyDeclaration(d, [0,0], "color",      "#f00")
+    verifyDeclaration(d, [0,1], "background", "#00f")
+
     // unmatched closing
     verifyErr(ParseErr#) { x := p("/*") }
     verifyErr(ParseErr#) { x := p("/* *") }
@@ -271,6 +288,21 @@ Void testLineComments()
     verifyChildSize(d, [,], 2)
     verifySelectors(d, [0], ["h1"])
     verifySelectors(d, [1], ["h3"])
+
+    d = p("h1 { color: #f00 } // color: #222
+           h2 { color: #00f }")
+    verifyChildSize(d, [,], 2)
+    verifySelectors(d, [0], ["h1"])
+    verifySelectors(d, [1], ["h2"])
+
+    d = p("h1 {
+             color: #f00 // color: #222
+             background: #00f
+           }")
+    verifyChildSize(d,   [,], 1)
+    verifySelectors(d,   [0], ["h1"])
+    verifyDeclaration(d, [0,0], "color",      "#f00")
+    verifyDeclaration(d, [0,1], "background", "#00f")
   }
 
 //////////////////////////////////////////////////////////////////////////
