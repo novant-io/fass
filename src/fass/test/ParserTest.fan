@@ -61,13 +61,13 @@
     verifyChildSize(  d, [,], 1)
     verifySelectors(  d, [0], ["a"])
     verifyChildSize(  d, [0], 1)
-    verifyDeclaration(d, [0,0], "color", ["#f00"])
+    verifyDeclaration(d, [0,0], "color", "#f00")
 
     d = p("a { color: #f00; }")
     verifyChildSize(  d, [,], 1)
     verifySelectors(  d, [0], ["a"])
     verifyChildSize(  d, [0], 1)
-    verifyDeclaration(d, [0,0], "color", ["#f00"])
+    verifyDeclaration(d, [0,0], "color", "#f00")
 
     d = p("h2 {
              color: #5d2
@@ -75,7 +75,7 @@
     verifyChildSize(  d, [,], 1)
     verifySelectors(  d, [0], ["h2"])
     verifyChildSize(  d, [0], 1)
-    verifyDeclaration(d, [0,0], "color", ["#5d2"])
+    verifyDeclaration(d, [0,0], "color", "#5d2")
 
     d = p("div {
              color: #00f
@@ -84,15 +84,15 @@
     verifyChildSize(  d, [,], 1)
     verifySelectors(  d, [0], ["div"])
     verifyChildSize(  d, [0], 2)
-    verifyDeclaration(d, [0,0], "color",       ["#00f"])
-    verifyDeclaration(d, [0,1], "font-weight", ["bold"])
+    verifyDeclaration(d, [0,0], "color",       "#00f")
+    verifyDeclaration(d, [0,1], "font-weight", "bold")
 
     d = p("div { color: #00f; font-weight: bold; }")
     verifyChildSize(  d, [,], 1)
     verifySelectors(  d, [0], ["div"])
     verifyChildSize(  d, [0], 2)
-    verifyDeclaration(d, [0,0], "color",       ["#00f"])
-    verifyDeclaration(d, [0,1], "font-weight", ["bold"])
+    verifyDeclaration(d, [0,0], "color",       "#00f")
+    verifyDeclaration(d, [0,1], "font-weight", "bold")
 
     // d = p("@font-face {
     //          font-family: 'Inter'
@@ -119,10 +119,10 @@
   Void testDeclaration()
   {
     d := p("a { color: #f00 }")
-    verifyDeclaration(d, [0,0], "color", ["#f00"])
+    verifyDeclaration(d, [0,0], "color", "#f00")
 
     d = p("a { height: calc(100% - 25px) }")
-    verifyDeclaration(d, [0,0], "height", ["calc(100% - 25px)"])
+    verifyDeclaration(d, [0,0], "height", "calc(100% - 25px)")
 
     // d = p("@font-face { src: url('x.woff2') format('woff2'), url('x.woff') format('woff') }")
     // verifyDeclaration(d, [0,0], "src", [
@@ -164,10 +164,10 @@
     verifyChildSize(  d, [,], 1)
     verifySelectors(  d, [0], ["div"])
     verifyChildSize(  d, [0], 3)
-    verifyDeclaration(d, [0,0], "color",       ["#00f"])
-    verifyDeclaration(d, [0,1], "font-weight", ["bold"])
+    verifyDeclaration(d, [0,0], "color",       "#00f")
+    verifyDeclaration(d, [0,1], "font-weight", "bold")
     verifySelectors(  d, [0,2], ["p"])
-    verifyDeclaration(d, [0,2,0], "color", ["#333"])
+    verifyDeclaration(d, [0,2,0], "color", "#333")
   }
 
 //////////////////////////////////////////////////////////////////////////
@@ -195,7 +195,7 @@
            p { padding: \$foo }")
     verifyVarAssign(d, [0], "foo", "10px")
     verifySelectors(  d, [1], ["p"])
-    verifyDeclaration(d, [1,0], "padding", ["foo"])
+    verifyDeclaration(d, [1,0], "padding", "foo")
 
     d = p("\$foo: 10px
            \$bar: #f00
@@ -271,18 +271,14 @@
     verifyEq(d->selectors, selectors)
   }
 
-  private Void verifyDeclaration(Def root, Int[] path, Str prop, Str[] vals)
+  private Void verifyDeclaration(Def root, Int[] path, Str prop, Str val)
   {
     d := descend(root, path)
     verifyEq(d.typeof, DeclarationDef#)
     verifyEq(d->prop, prop)
-    verifyEq(d->exprs->size, vals.size)
-    vals.each |v,i|
-    {
-      e := d->exprs->get(i)
-      t := e is LiteralDef ? e->val : e->name
-      verifyEq(t, v)
-    }
+    e := d->expr
+    t := e is LiteralDef ? e->val : e->name
+    verifyEq(t, val)
   }
 
   private Void verifyVarAssign(Def root, Int[] path, Str name, Str val)
