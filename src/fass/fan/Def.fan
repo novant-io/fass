@@ -28,6 +28,24 @@
 }
 
 *************************************************************************
+** DirectiveDef
+*************************************************************************
+
+@Js internal class DirectiveDef : Def
+{
+  new make(|This| f) { f(this) }
+
+  const Str directive
+  const Str arg
+
+  override Void dump(OutStream out, Int indent)
+  {
+    out.print(Str.spaces(indent))
+    out.print(directive).print(" ").printLine(arg)
+  }
+}
+
+*************************************************************************
 ** RulesetDef
 *************************************************************************
 

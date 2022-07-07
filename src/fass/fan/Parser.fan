@@ -13,6 +13,7 @@
 @Js internal enum class TokenType
 {
   comment,
+  directive,
   identifier,
   openBrace,
   closeBrace,
@@ -39,6 +40,7 @@
   const Str val
 
   Bool isComment()    { type == TokenType.comment    }
+  Bool isDirective()  { type == TokenType.directive  }
   Bool isIdentifier() { type == TokenType.identifier }
   Bool isOpenBrace()  { type == TokenType.openBrace  }
   Bool isCloseBrace() { type == TokenType.closeBrace }
@@ -84,8 +86,6 @@
       parent := stack.last
       switch (token.type)
       {
-        case TokenType.comment: continue
-
         case TokenType.identifier:
           start := token
           // first check if this is a declaration
@@ -175,7 +175,7 @@
   {
     // read next non-comment token
     token := readNextToken
-//    while (token?.isComment == true) token = readNextToken
+    while (token?.isComment == true) token = readNextToken
 
     // wrap in eos if hit end of file
     if (token == null) token = Token(TokenType.eos, "")
@@ -226,6 +226,21 @@
     if (ch == ':') return Token(TokenType.colon,      ":")
     if (ch == ';') return Token(TokenType.semicolon,  ";")
 
+    // directive
+    if (ch == '@')
+    {
+      while (peek.isAlpha) buf.addChar(read)
+      if (isDirective(buf.toStr))
+        return Token(TokenType.directive, buf.toStr)
+      else
+      {
+        // push back onto stream
+        i := buf.size-1
+        while (i >= 0) unread(buf[i--])
+      }
+      buf.clear
+    }
+
     // var
     if (ch == '\$')
     {
@@ -240,6 +255,13 @@
     while (peek != null && isValidIdentiferChar(peek)) buf.addChar(read)
     // trim whitespace around selectors
     return Token(TokenType.identifier, buf.toStr.split.join(" "))
+  }
+
+  ** Return 'true' if str is a fass directive.
+  private Bool isDirective(Str s)
+  {
+    if (s == "use") return true
+    return false
   }
 
   ** Return 'true' if ch is a valid identifier char
@@ -269,6 +291,9 @@
     if (ch == '\n') line++
     return ch
   }
+
+  ** Push char back on stream.
+  private Void unread(Int ch) { in.unreadChar(ch) }
 
   ** Peek next char in stream.
   private Int? peek() { in.peekChar }
