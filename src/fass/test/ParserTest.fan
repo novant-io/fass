@@ -221,6 +221,13 @@
     d := p("/**/")
     verifyEq(d.children.size, 0)
 
+    d = p("/**//**/")
+    verifyEq(d.children.size, 0)
+
+    d = p("/**/
+           /**/")
+    verifyEq(d.children.size, 0)
+
     d = p("/* cool */")
     verifyEq(d.children.size, 0)
 

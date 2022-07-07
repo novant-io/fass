@@ -190,6 +190,9 @@
     ch := read
     while (ch != null && ch.isSpace) ch = read
 
+    // eos
+    if (ch == null) return null
+
     // eat multi-line comment
     if (ch == '/' && peek == '*')
     {
@@ -201,13 +204,9 @@
         if (ch == '*' && peek == '/') { read; break }
         ch = read
       }
-      // eat trailing / and leading whitespace
-      ch = read
-      while (ch != null && ch.isSpace) ch = read
+      // eat trailing / and recurse
+      return readNextToken
     }
-
-    // eos
-    if (ch == null) return null
 
     // exact matches
     if (ch == '{') return Token(TokenType.openBrace,  "{")
