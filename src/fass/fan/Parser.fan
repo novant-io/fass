@@ -17,6 +17,7 @@
   comma,
   colon,
   semicolon,
+  atRule,
   selector,
   property,
   expr,
@@ -43,6 +44,7 @@
   Bool isCloseBrace() { type == TokenType.closeBrace }
   Bool isComma()      { type == TokenType.comma      }
   Bool isColon()      { type == TokenType.colon      }
+  Bool isAtRule()     { type == TokenType.atRule     }
   Bool isSemicolon()  { type == TokenType.semicolon  }
   Bool isSelector()   { type == TokenType.selector   }
   Bool isProperty()   { type == TokenType.property   }
@@ -99,7 +101,8 @@
           def  := VarAssignDef { it.var=var; it.expr=expr }
           parent.children.add(def)
 
-        // selectors
+        // selectors/at-rules
+        case TokenType.atRule:
         case TokenType.selector:
           // read ahead to check for additional selectors
           sels := [token.val]
@@ -228,6 +231,14 @@
       return Token(TokenType.var, buf.toStr.trim)
     }
 
+    // at-rule
+    if (ch == '@')
+    {
+      buf.addChar(ch)
+      while (peek != null && isSelectorChar(peek)) buf.addChar(read)
+      return Token(TokenType.atRule, buf.toStr.trim)
+    }
+
     // check context to see expected token
     if (cx == 0)
     {
@@ -257,6 +268,13 @@
       // expr
       while (true)
       {
+        // if we hit a comma, allow a newline
+        if (ch == ',')
+        {
+          buf.addChar(ch)
+          while (peek != null && peek.isSpace) ch = read
+        }
+
         if (ch == null || ch == ';' || ch == '\n' || ch == '}') break
         else if (isExprChar(ch)) { buf.addChar(ch); ch = read }
         else throw unexpectedChar(ch)
@@ -305,6 +323,8 @@
     if (ch == ',') return true
     if (ch == '(') return true
     if (ch == ')') return true
+    if (ch == '\'') return true
+    if (ch == '\"') return true
     return false
   }
 

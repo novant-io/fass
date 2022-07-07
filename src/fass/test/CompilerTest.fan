@@ -60,15 +60,15 @@
 
   Void testDeclarations()
   {
-    // verifyCss(
-    //   "@font-face {
-    //      src: url('x.woff2') format('woff2'),
-    //           url('x.woff') format('woff')
-    //    }",
-    //   "@font-face {
-    //      src: url('x.woff2') format('woff2'), url('x.woff') format('woff');
-    //    }
-    //    ")
+    verifyCss(
+      "@font-face {
+         src: url('x.woff2') format('woff2'),
+              url('x.woff') format('woff')
+       }",
+      "@font-face {
+         src: url('x.woff2') format('woff2'), url('x.woff') format('woff');
+       }
+       ")
   }
 
 //////////////////////////////////////////////////////////////////////////
