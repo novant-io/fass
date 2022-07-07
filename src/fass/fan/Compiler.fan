@@ -34,7 +34,7 @@
       {
         case VarAssignDef#:
           VarAssignDef v := d
-          varmap[v.var.name] = v.val.val
+          varmap[v.var.name] = v.expr.val
 
         case RulesetDef#:
           flattenRuleset(d, "", flat)

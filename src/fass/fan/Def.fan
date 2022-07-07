@@ -97,14 +97,14 @@
   new make(|This| f) { f(this) }
 
   VarDef var
-  LiteralDef val
+  LiteralDef expr
 
   override Void dump(OutStream out, Int indent)
   {
     out.print(Str.spaces(indent))
     var.dump(out, 0)
     out.print(": ")
-    val.dump(out, 0)
+    expr.dump(out, 0)
     out.printLine("")
   }
 }

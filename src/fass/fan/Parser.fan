@@ -3,7 +3,7 @@
 // All Rights Reserved
 //
 // History:
-//   20 Jun 2022  Andy Frank  Creation
+//   7 Jul 2022  Andy Frank  Creation
 //
 
 *************************************************************************
@@ -12,14 +12,14 @@
 
 @Js internal enum class TokenType
 {
-  comment,
-  directive,
-  identifier,
   openBrace,
   closeBrace,
   comma,
   colon,
   semicolon,
+  selector,
+  property,
+  expr,
   var,
   eos
 }
@@ -39,14 +39,14 @@
   ** Token literval val.
   const Str val
 
-  Bool isComment()    { type == TokenType.comment    }
-  Bool isDirective()  { type == TokenType.directive  }
-  Bool isIdentifier() { type == TokenType.identifier }
   Bool isOpenBrace()  { type == TokenType.openBrace  }
   Bool isCloseBrace() { type == TokenType.closeBrace }
   Bool isComma()      { type == TokenType.comma      }
   Bool isColon()      { type == TokenType.colon      }
   Bool isSemicolon()  { type == TokenType.semicolon  }
+  Bool isSelector()   { type == TokenType.selector   }
+  Bool isProperty()   { type == TokenType.property   }
+  Bool isExpr()       { type == TokenType.expr       }
   Bool isVar()        { type == TokenType.var        }
   Bool isEos()        { type == TokenType.eos        }
 
@@ -83,71 +83,62 @@
       token = nextToken
       if (token.isEos) break
 
+      // process next token
       parent := stack.last
       switch (token.type)
       {
-        case TokenType.identifier:
-          start := token
-          // first check if this is a declaration
-          token = nextToken
-          if (token.isColon)
-          {
-            exprs := Def[,]
-            Token? last
-            while (true)
-            {
-              canAdd := last == null || last.isComma
-              token = nextToken
-              if (last == null || last.isComma)
-              {
-                if (token.isIdentifier) exprs.add(LiteralDef { it.val=token.val })
-                else if (token.isVar)   exprs.add(VarDef { it.name=token.val })
-                else throw unexpectedToken(token)
-              }
-              else if (!token.isComma)
-              {
-                unreadToken(token)
-                break
-              }
-              last = token
-            }
-            def := DeclarationDef
-            {
-              it.prop  = start.val
-              it.exprs = exprs
-            }
-            consumeSemicolon
-            parent.children.add(def)
-          }
-          else
-          {
-            // else assume ruleset
-            acc := [start.val]
-            while (true)
-            {
-              if (token.isIdentifier) acc.add(token.val)
-              else if (token.isOpenBrace) break
-              else if (!token.isComma) throw unexpectedToken(token)
-              token = nextToken
-            }
-            def := RulesetDef { it.selectors=acc }
-            parent.children.add(def)
-            stack.push(def)
-          }
+        // semicolon
+        case TokenType.semicolon: noBreakIsStoopid := 0
 
+        // var assign
         case TokenType.var:
-          var := VarDef { it.name = token.val }
+          var := VarDef { it.name=token.val }
           nextToken(TokenType.colon)
-          token = nextToken(TokenType.identifier)
-          val := LiteralDef { it.val = token.val }
-          consumeSemicolon
-          def := VarAssignDef { it.var=var; it.val=val }
+          token = nextToken
+          expr := LiteralDef { it.val=token.val }
+          def  := VarAssignDef { it.var=var; it.expr=expr }
           parent.children.add(def)
 
-        case TokenType.closeBrace:
-          last := stack.pop
-          // if (last isnot IfDef) throw unmatchedDef(last)
+        // selectors
+        case TokenType.selector:
+          // read ahead to check for additional selectors
+          sels := [token.val]
+          while (true)
+          {
+            token = nextToken
+            if (token.isComma)
+            {
+              token = nextToken(TokenType.selector)
+              sels.add(token.val)
+              continue
+            }
+            if (token.isOpenBrace) break
+            throw unexpectedToken(token)
+          }
+          def := RulesetDef { it.selectors=sels }
+          parent.children.add(def)
+          stack.push(def)
 
+        // props
+        case TokenType.property:
+          prop := token.val
+          nextToken(TokenType.colon)
+          Def? expr
+          token = nextToken
+          if (token.isExpr) expr = LiteralDef { it.val=token.val }
+          else if (token.isVar) expr = VarDef { it.name=token.val }
+          else throw unexpectedToken(token)
+          def := DeclarationDef
+          {
+            it.prop  = prop
+            it.exprs = [expr]
+          }
+          parent.children.add(def)
+
+        // close brace
+        case TokenType.closeBrace: stack.pop
+
+        // err
         default: throw unexpectedToken(token)
       }
     }
@@ -158,13 +149,6 @@
     return root
   }
 
-  ** Eat trailing semicolon if present.
-  private Void consumeSemicolon()
-  {
-    token := nextToken
-    if (!token.isSemicolon) unreadToken(token)
-  }
-
 //////////////////////////////////////////////////////////////////////////
 // Tokenizer
 //////////////////////////////////////////////////////////////////////////
@@ -173,9 +157,8 @@
   ** and does match read token, throw ParseErr.
   private Token nextToken(TokenType? type := null)
   {
-    // read next non-comment token
+    // read next token
     token := readNextToken
-    while (token?.isComment == true) token = readNextToken
 
     // wrap in eos if hit end of file
     if (token == null) token = Token(TokenType.eos, "")
@@ -203,21 +186,25 @@
     // read next char (eat leading whitespace)
     ch := read
     while (ch != null && ch.isSpace) ch = read
-    if (ch == null) return null
 
-    // comment
+    // eat multi-line comment
     if (ch == '/' && peek == '*')
     {
-      read
+      ch = read
       ch = read
       while (true)
       {
+        if (ch == null) throw unexpectedChar(null)
         if (ch == '*' && peek == '/') { read; break }
-        buf.addChar(ch)
         ch = read
       }
-      return Token(TokenType.comment, buf.toStr)
+      // eat trailing / and leading whitespace
+      ch = read
+      while (ch != null && ch.isSpace) ch = read
     }
+
+    // eos
+    if (ch == null) return null
 
     // exact matches
     if (ch == '{') return Token(TokenType.openBrace,  "{")
@@ -226,58 +213,103 @@
     if (ch == ':') return Token(TokenType.colon,      ":")
     if (ch == ';') return Token(TokenType.semicolon,  ";")
 
-    // directive
-    if (ch == '@')
-    {
-      while (peek.isAlpha) buf.addChar(read)
-      if (isDirective(buf.toStr))
-        return Token(TokenType.directive, buf.toStr)
-      else
-      {
-        // push back onto stream
-        i := buf.size-1
-        while (i >= 0) unread(buf[i--])
-      }
-      buf.clear
-    }
-
     // var
     if (ch == '\$')
     {
-      if (!peek.isAlpha) throw unexpectedChar(ch)
-      while (isValidVarChar(peek)) buf.addChar(read)
-      return Token(TokenType.var, buf.toStr)
+      ch = read
+      if (!ch.isAlpha) throw unexpectedChar(ch)
+      buf.addChar(ch)
+      while (peek != null && isVarChar(peek)) buf.addChar(read)
+
+      // eat leading whitespace and check for ':' for assign cx
+      while (peek.isSpace) ch = read
+      if (peek == ':') cx = 1
+      else cx = 0
+      return Token(TokenType.var, buf.toStr.trim)
     }
 
-    // identifier
-    if (!isValidIdentiferChar(ch)) throw unexpectedChar(ch)
-    buf.addChar(ch)
-    while (peek != null && isValidIdentiferChar(peek)) buf.addChar(read)
-    // trim whitespace around selectors
-    return Token(TokenType.identifier, buf.toStr.split.join(" "))
+    // check context to see expected token
+    if (cx == 0)
+    {
+      // selector or property
+      if (!ch.isAlpha)throw unexpectedChar(ch)
+      buf.addChar(ch)
+      while (peek != null && (isSelectorChar(peek) || isPropertyChar(peek)))
+      {
+        buf.addChar(read)
+      }
+
+      // eat leading whitespace
+      while (peek.isSpace) ch = read
+
+      // if peek is ':' this is a prop declaration
+      if (peek == ':')
+      {
+        cx = 2
+        return Token(TokenType.property, buf.toStr.trim)
+      }
+
+      // otherwise selector; split and join to remove excess whitespace
+      return Token(TokenType.selector, buf.toStr.trim.split.join(" "))
+    }
+    else
+    {
+      // expr
+      while (true)
+      {
+        if (ch == null || ch == ';' || ch == '\n' || ch == '}') break
+        else if (isExprChar(ch)) { buf.addChar(ch); ch = read }
+        else throw unexpectedChar(ch)
+      }
+      // pushback last char and reset cx state
+      if (ch != null) unread(ch)
+      cx = 0
+      return Token(TokenType.expr, buf.toStr.trim)
+    }
   }
 
-  ** Return 'true' if str is a fass directive.
-  private Bool isDirective(Str s)
+  ** Return 'true' if this ch is a valid selector char.
+  private Bool isSelectorChar(Int ch)
   {
-    if (s == "use") return true
+    if (ch.isAlphaNum) return true
+    if (ch == ' ') return true
+    if (ch == '#') return true
+    if (ch == '.') return true
+    if (ch == '-') return true
+    if (ch == '[') return true
+    if (ch == ']') return true
+    if (ch == '=') return true
     return false
   }
 
-  ** Return 'true' if ch is a valid identifier char
-  private Bool isValidIdentiferChar(Int ch)
+  ** Return 'true' if this ch is a valid property char.
+  private Bool isPropertyChar(Int ch)
   {
-    if (ch == '{') return false
-    if (ch == '}') return false
-    if (ch == ',') return false
-    if (ch == ':') return false
-    if (ch == ';') return false
-    if (ch == '\n') return false
-    return true
+    if (ch.isAlpha) return true
+    if (ch == '-')  return true
+    return false
   }
 
-  ** Return 'true' if ch is a valid variable char
-  private Bool isValidVarChar(Int ch)
+  ** Return 'true' if this ch is a valid expr char.
+  private Bool isExprChar(Int ch)
+  {
+    if (ch.isAlphaNum) return true
+    if (ch == ' ') return true
+    if (ch == '#') return true
+    if (ch == '.') return true
+    if (ch == '+') return true
+    if (ch == '-') return true
+    if (ch == '/') return true
+    if (ch == '*') return true
+    if (ch == '%') return true
+    if (ch == ',') return true
+    if (ch == '(') return true
+    if (ch == ')') return true
+    return false
+  }
+
+  ** Return 'true' if this ch is a valid var char.
+  private Bool isVarChar(Int ch)
   {
     if (ch.isAlphaNum) return true
     if (ch == '_') return true
@@ -324,10 +356,18 @@
 // Fields
 //////////////////////////////////////////////////////////////////////////
 
-  private InStream in               // input
-  private Int line := 1             // current line
+  //
+  // Current context state:
+  //
+  //   0: root
+  //   1: inside var assign
+  //   2: inside prop declaration
+  //
+  private Int cx := 0
+
+  private InStream in               // input stream
+  private Int line := 1             // current line number
   private Def[] stack := [,]        // AST node stack
-  private Int commentDepth := 0     // track comment {{!-- depth
   private StrBuf buf := StrBuf()    // resuse buf in nextToken
   private Token[] pushback := [,]   // for unreadToken
 }
