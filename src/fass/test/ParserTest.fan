@@ -216,7 +216,7 @@
 // Comments
 //////////////////////////////////////////////////////////////////////////
 
-  Void testComments()
+  Void testBlockComments()
   {
     d := p("/**/")
     verifyEq(d.children.size, 0)
@@ -248,6 +248,29 @@
     // unmatched closing
     verifyErr(ParseErr#) { x := p("/*") }
     verifyErr(ParseErr#) { x := p("/* *") }
+  }
+
+Void testLineComments()
+  {
+    d := p("//")
+    verifyEq(d.children.size, 0)
+
+    d = p("//
+           //")
+    verifyEq(d.children.size, 0)
+
+    d = p("// cool")
+    verifyEq(d.children.size, 0)
+
+    d = p("// h1 { color: #f00 }")
+    verifyEq(d.children.size, 0)
+
+    d = p("h1 { color: #f00 }
+           // h2 { color: #0f0 }
+           h3 { color: #00f }")
+    verifyChildSize(d, [,], 2)
+    verifySelectors(d, [0], ["h1"])
+    verifySelectors(d, [1], ["h3"])
   }
 
 //////////////////////////////////////////////////////////////////////////

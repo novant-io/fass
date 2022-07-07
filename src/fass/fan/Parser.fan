@@ -193,7 +193,7 @@
     // eos
     if (ch == null) return null
 
-    // eat multi-line comment
+    // eat block comment
     if (ch == '/' && peek == '*')
     {
       ch = read
@@ -205,6 +205,14 @@
         ch = read
       }
       // eat trailing / and recurse
+      return readNextToken
+    }
+
+    // eat line comment
+    if (ch == '/' && peek == '/')
+    {
+      // read till end of line and recurse
+      while (peek != null && peek != '\n') read
       return readNextToken
     }
 
