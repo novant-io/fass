@@ -326,6 +326,8 @@
     if (ch == '#') return true
     if (ch == '.') return true
     if (ch == '-') return true
+    if (ch == '(') return true
+    if (ch == ')') return true
     if (ch == '[') return true
     if (ch == ']') return true
     if (ch == '=') return true

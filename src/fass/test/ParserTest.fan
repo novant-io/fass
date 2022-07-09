@@ -53,6 +53,14 @@
     d = p("li:first-child {}")
     verifyChildSize(d, [,], 1)
     verifySelectors(d, [0], ["li:first-child"])
+
+    d = p("ul li:nth-child(2) {}")
+    verifyChildSize(d, [,], 1)
+    verifySelectors(d, [0], ["ul li:nth-child(2)"])
+
+    d = p("div:first-child, ul li:nth-child(even) {}")
+    verifyChildSize(d, [,], 1)
+    verifySelectors(d, [0], ["div:first-child", "ul li:nth-child(even)"])
   }
 
 //////////////////////////////////////////////////////////////////////////
