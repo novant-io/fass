@@ -257,18 +257,37 @@
         buf.addChar(read)
       }
 
-      // eat leading whitespace
-      while (peek.isSpace) ch = read
+      // eat leading whitespace, but retain in buf in
+      // case we need to pushback (filter out later)
+      while (peek.isSpace) buf.addChar(ch = read)
 
-      // if peek is ':' this is a prop declaration
-      if (peek == ':')
+      // check next char for selector vs prop
+      if (peek == '{' || peek == ',')
       {
-        cx = 2
-        return Token(TokenType.property, buf.toStr.trim)
+        // set cx, re-validate as selector, fitler excess whitespace
+        cx = 0
+        temp := buf.toStr.trim.split.join(" ")
+        temp.each |x| { if (!isSelectorChar(x)) throw unexpectedChar(x) }
+        return Token(TokenType.selector, temp)
       }
+      else
+      {
+        // valid selectors can include ':' so we need to check
+        // if we consumed and pushback onto instream
+        temp   := buf.toStr
+        offset := temp.index(":")
+        if (offset != null)
+        {
+          (temp.size - offset).times |p| { in.unreadChar(temp[-(p+1)]) }
+          temp = temp[0..<offset]
+        }
 
-      // otherwise selector; split and join to remove excess whitespace
-      return Token(TokenType.selector, buf.toStr.trim.split.join(" "))
+        // set cx, re-validate as property, filter excess whitepsace
+        cx = 2
+        temp = temp.trim.split.join(" ")
+        temp.each |x| { if (!isPropertyChar(x)) throw unexpectedChar(x) }
+        return Token(TokenType.property, temp)
+      }
     }
     else
     {
@@ -291,6 +310,7 @@
         else if (isExprChar(ch)) { buf.addChar(ch); ch = read }
         else throw unexpectedChar(ch)
       }
+
       // pushback last char and reset cx state
       if (ch != null) unread(ch)
       cx = 0
@@ -309,6 +329,7 @@
     if (ch == '[') return true
     if (ch == ']') return true
     if (ch == '=') return true
+    if (ch == ':') return true
     return false
   }
 

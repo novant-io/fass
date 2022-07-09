@@ -49,6 +49,10 @@
     d = p(" a#foo ,  p.bar,input { } ")
     verifyChildSize(d, [,], 1)
     verifySelectors(d, [0], ["a#foo", "p.bar", "input"])
+
+    d = p("li:first-child {}")
+    verifyChildSize(d, [,], 1)
+    verifySelectors(d, [0], ["li:first-child"])
   }
 
 //////////////////////////////////////////////////////////////////////////
@@ -267,7 +271,7 @@
     verifyErr(ParseErr#) { x := p("/* *") }
   }
 
-Void testLineComments()
+  Void testLineComments()
   {
     d := p("//")
     verifyEq(d.children.size, 0)
