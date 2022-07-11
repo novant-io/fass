@@ -38,6 +38,18 @@
   const Str rule
   Def expr
 
+  Str filename()
+  {
+    if (expr isnot LiteralDef) throw ArgErr("Invalid expr '${expr}'")
+    v := expr->val.toStr
+    if (v.size >= 3)
+    {
+      if (v.startsWith("'"))  return v[1..-2]
+      if (v.startsWith("\"")) return v[1..-2]
+    }
+    return v
+  }
+
   override Void dump(OutStream out, Int indent)
   {
     out.print(Str.spaces(indent))

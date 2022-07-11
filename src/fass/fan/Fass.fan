@@ -15,11 +15,18 @@ using concurrent
 @Js const class Fass
 {
   ** Compile the fass source from 'in' into native CSS and write
-  ** results to 'out'.
-  static Void compile(InStream in, OutStream out)
+  ** results to 'out'. If the source contains '@use' at-rules then
+  ** 'onUse' is required to resolve the filename to an 'InStream'
+  ** for referenced fass content.
+  static Void compile(InStream in, OutStream out, |Str name->InStream|? onUse := null)
   {
     def := Parser(in).parse
-    Compiler(def).compile(out)
+    use := |Str n->Def|
+    {
+      if (onUse == null) throw Err("Missing @use resolver func")
+      return Parser(onUse(n)).parse
+    }
+    Compiler(def).compile(out, use)
   }
 
   ** Compile the fass source into native CSS and return as 'Str'.

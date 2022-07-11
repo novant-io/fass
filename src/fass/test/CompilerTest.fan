@@ -292,18 +292,70 @@
   }
 
 //////////////////////////////////////////////////////////////////////////
+// Use
+//////////////////////////////////////////////////////////////////////////
+
+  private Void testUse()
+  {
+    a := "p { color:#777 }"
+    b := "ul { margin: 2em 0 }"
+    u := |n->InStream|
+    {
+      if (n == "_a.fass") return a.in
+      if (n == "_b.fass") return b.in
+      throw Err("Not found '${n}'")
+    }
+
+    verifyCss(
+      "@use '_a.fass'
+       h1 { color: #333 }",
+      "p {
+         color: #777;
+       }
+       h1 {
+         color: #333;
+       }
+       ", u)
+
+    verifyCss(
+      "@use '_a.fass'
+       @use '_b.fass'
+       h1 { color: #333 }",
+      "p {
+         color: #777;
+       }
+       ul {
+         margin: 2em 0;
+       }
+       h1 {
+         color: #333;
+       }
+       ", u)
+  }
+
+//////////////////////////////////////////////////////////////////////////
 // Support
 //////////////////////////////////////////////////////////////////////////
 
-  private Str c(Str fass)
+  private Str c(Str fass, Func? onUse := null)
   {
-    css := Fass.compileStr(fass)
+    css := ""
+    if (onUse == null)
+    {
+      css = Fass.compileStr(fass)
+    }
+    else
+    {
+      buf := StrBuf()
+      Fass.compile(fass.in, buf.out, onUse)
+      css = buf.toStr
+    }
 // echo(css)
     return css
   }
 
-  private Void verifyCss(Str fass, Str css)
+  private Void verifyCss(Str fass, Str css, Func? onUse := null)
   {
-    verifyEq(c(fass), css)
+    verifyEq(c(fass, onUse), css)
   }
 }

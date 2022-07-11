@@ -326,7 +326,7 @@
         if (ch == null || ch == ';' || ch == '\n' || ch == '}') break
         // else if (isExprChar(ch)) { buf.addChar(ch); ch = read }
 // TODO FIXIT: need to allow any char inside a quoted str
-else if (isExprChar(ch) || ch == '>') { buf.addChar(ch); ch = read }
+else if (isExprChar(ch) || ch == '>' || ch == '_') { buf.addChar(ch); ch = read }
         else throw unexpectedChar(ch)
       }
 

@@ -19,9 +19,9 @@
   }
 
   ** Compile AST to native CSS on given outstream.
-  Void compile(OutStream out)
+  Void compile(OutStream out, |Str name->Def| onUse)
   {
-    flatten.each |d| { compileDef(d, out) }
+    flatten.each |d| { compileDef(d, out, onUse) }
   }
 
   ** Flatten all RulesetDefs.
@@ -32,6 +32,8 @@
     {
       switch (d.typeof)
       {
+        case AtRuleDef#: flat.add(d)
+
         case VarAssignDef#:
           VarAssignDef v := d
           varmap[v.var.name] = v.expr.val
@@ -83,17 +85,24 @@
   }
 
   ** Compile Def node to CSS.
-  private Void compileDef(Def def, OutStream out)
+  private Void compileDef(Def def, OutStream out, |Str name->Def| onUse)
   {
     switch (def.typeof)
     {
+      case AtRuleDef#:
+        AtRuleDef a := def
+        if (a.rule != "@use") throw Err("Unsupported rule '${a.rule}'")
+        if (a.expr isnot LiteralDef) throw Err("Unsupported @use expr")
+        _def := onUse(a.filename)
+        Compiler(_def).compile(out, onUse)
+
       case RulesetDef#:
         RulesetDef r := def
         decls := r.children.findType(DeclarationDef#)
         // do not render rule if no declarations
         if (decls.isEmpty) return
         out.print(r.selectors.join(" ")).printLine(" {")
-        decls.each |k| { compileDef(k, out) }
+        decls.each |k| { compileDef(k, out, onUse) }
         out.printLine("}")
 
       case DeclarationDef#:
