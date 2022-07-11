@@ -295,7 +295,7 @@
 // Use
 //////////////////////////////////////////////////////////////////////////
 
-  private Void testUse()
+  private Void testUseSimple()
   {
     a := "p { color:#777 }"
     b := "ul { margin: 2em 0 }"
@@ -329,6 +329,57 @@
        }
        h1 {
          color: #333;
+       }
+       ", u)
+  }
+
+  private Void testUseVar()
+  {
+    a := "\$a1: #777
+          p { color: \$a1 }"
+    b := "\$b1: 2em 0
+          ul { margin: \$b1 }"
+    u := |n->InStream|
+    {
+      if (n == "_a.fass") return a.in
+      if (n == "_b.fass") return b.in
+      throw Err("Not found '${n}'")
+    }
+
+    verifyCss(
+      "@use '_a.fass'
+       h1 {
+        color: #333
+        border-color: \$a1
+       }
+       ",
+      "p {
+         color: #777;
+       }
+       h1 {
+         color: #333;
+         border-color: #777;
+       }
+       ", u)
+
+    verifyCss(
+      "@use '_a.fass'
+       @use '_b.fass'
+       h1 {
+         color: #333
+         border-color: \$a1
+         padding: \$b1
+       }",
+      "p {
+         color: #777;
+       }
+       ul {
+         margin: 2em 0;
+       }
+       h1 {
+         color: #333;
+         border-color: #777;
+         padding: 2em 0;
        }
        ", u)
   }

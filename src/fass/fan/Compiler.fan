@@ -94,6 +94,15 @@
         if (a.rule != "@use") throw Err("Unsupported rule '${a.rule}'")
         if (a.expr isnot LiteralDef) throw Err("Unsupported @use expr")
         _def := onUse(a.filename)
+        _def.children.each |k|
+        {
+          // inject vars into parent context
+          if (k is VarAssignDef)
+          {
+            VarAssignDef v := k
+            varmap[v.var.name] = v.expr.val
+          }
+        }
         Compiler(_def).compile(out, onUse)
 
       case RulesetDef#:
