@@ -28,20 +28,21 @@
 }
 
 *************************************************************************
-** DirectiveDef
+** AtRuleDef
 *************************************************************************
 
-@Js internal class DirectiveDef : Def
+@Js internal class AtRuleDef : Def
 {
   new make(|This| f) { f(this) }
 
-  const Str directive
-  const Str arg
+  const Str rule
+  Def expr
 
   override Void dump(OutStream out, Int indent)
   {
     out.print(Str.spaces(indent))
-    out.print(directive).print(" ").printLine(arg)
+    out.print(rule).print(" ")
+    expr.dump(out, 0)
   }
 }
 

@@ -101,8 +101,19 @@
           def  := VarAssignDef { it.var=var; it.expr=expr }
           parent.children.add(def)
 
-        // selectors/at-rules
+        // at-rule
         case TokenType.atRule:
+          rule := token
+          cx = 2
+          Def? expr
+          token = nextToken
+          if (token.isExpr) expr = LiteralDef { it.val=token.val }
+          else if (token.isVar) expr = VarDef { it.name=token.val }
+          else throw unexpectedToken(token)
+          def := AtRuleDef { it.rule=rule.val; it.expr=expr }
+          parent.children.add(def)
+
+        // selectors
         case TokenType.selector:
           // read ahead to check for additional selectors
           sels := [token.val]
@@ -243,7 +254,13 @@
     {
       buf.addChar(ch)
       while (peek != null && isSelectorChar(peek)) buf.addChar(read)
-      return Token(TokenType.atRule, buf.toStr.trim)
+      // NOTE: to keep things simply for now, we check for an
+      // allowlist match for at-rules, so we can avoid having
+      // to identify @rule <prop> vs @rule { ... }
+      temp := buf.toStr.trim
+      return isAtRule(temp)
+        ? Token(TokenType.atRule,   temp)
+        : Token(TokenType.selector, temp)
     }
 
     // check context to see expected token
@@ -318,6 +335,13 @@ else if (isExprChar(ch) || ch == '>') { buf.addChar(ch); ch = read }
       cx = 0
       return Token(TokenType.expr, buf.toStr.trim)
     }
+  }
+
+  ** Return 'true' if str is a valid at-rule.
+  private Bool isAtRule(Str s)
+  {
+    if (s == "@use") return true
+    return false
   }
 
   ** Return 'true' if this ch is a valid selector char.

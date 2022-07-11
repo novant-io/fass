@@ -141,6 +141,12 @@
     d := p("a { color: #f00 }")
     verifyDeclaration(d, [0,0], "color", "#f00")
 
+    d = p("a { font-family: 'comic sans' }")
+    verifyDeclaration(d, [0,0], "font-family", "'comic sans'")
+
+    d = p("a { font-family: \"comic sans\" }")
+    verifyDeclaration(d, [0,0], "font-family", "\"comic sans\"")
+
     d = p("a { height: calc(100% - 25px) }")
     verifyDeclaration(d, [0,0], "height", "calc(100% - 25px)")
 
@@ -240,16 +246,6 @@
   }
 
 //////////////////////////////////////////////////////////////////////////
-// Directives
-//////////////////////////////////////////////////////////////////////////
-
-  Void testDirectives()
-  {
-    // TODO
-    // d := p("@use '_foo.fass'")
-  }
-
-//////////////////////////////////////////////////////////////////////////
 // Comments
 //////////////////////////////////////////////////////////////////////////
 
@@ -343,6 +339,25 @@
   }
 
 //////////////////////////////////////////////////////////////////////////
+// Use
+//////////////////////////////////////////////////////////////////////////
+
+  Void testUse()
+  {
+    d := p("@use 'foo.fass'
+            p {}")
+    verifyChildSize(d, [,], 2)
+    verifyAtRule(d,    [0], "@use", "'foo.fass'")
+    verifySelectors(d, [1], ["p"])
+
+    d = p("@use \"foo.fass\"
+           p {}")
+    verifyChildSize(d, [,], 2)
+    verifyAtRule(d,    [0], "@use", "\"foo.fass\"")
+    verifySelectors(d, [1], ["p"])
+  }
+
+//////////////////////////////////////////////////////////////////////////
 // Support
 //////////////////////////////////////////////////////////////////////////
 
@@ -358,6 +373,16 @@
   {
     d := descend(root, path)
     verifyEq(d.children.size, test)
+  }
+
+  private Void verifyAtRule(Def root, Int[] path, Str rule, Str val)
+  {
+    d := descend(root, path)
+    verifyEq(d.typeof, AtRuleDef#)
+    verifyEq(d->rule, rule)
+    e := d->expr
+    t := e is LiteralDef ? e->val : e->name
+    verifyEq(t, val)
   }
 
   private Void verifySelectors(Def root, Int[] path, Str[] selectors)
