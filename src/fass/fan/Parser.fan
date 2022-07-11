@@ -250,7 +250,7 @@
     if (cx == 0)
     {
       // selector or property
-      if (!ch.isAlpha)throw unexpectedChar(ch)
+      if (!isSelectorChar(ch) && !isPropertyChar(ch)) throw unexpectedChar(ch)
       buf.addChar(ch)
       while (peek != null && (isSelectorChar(peek) || isPropertyChar(peek)))
       {
@@ -307,7 +307,9 @@
 
         // check line ending or keep going
         if (ch == null || ch == ';' || ch == '\n' || ch == '}') break
-        else if (isExprChar(ch)) { buf.addChar(ch); ch = read }
+        // else if (isExprChar(ch)) { buf.addChar(ch); ch = read }
+// TODO FIXIT: need to allow any char inside a quoted str
+else if (isExprChar(ch) || ch == '>') { buf.addChar(ch); ch = read }
         else throw unexpectedChar(ch)
       }
 
@@ -333,6 +335,7 @@
     if (ch == ']') return true
     if (ch == '=') return true
     if (ch == ':') return true
+    if (ch == '&') return true
     return false
   }
 

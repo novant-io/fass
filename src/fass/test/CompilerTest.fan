@@ -180,6 +180,50 @@
       ")
   }
 
+//////////////////////////////////////////////////////////////////////////
+// Self
+//////////////////////////////////////////////////////////////////////////
+
+ Void testSelf()
+  {
+    verifyCss(
+      "div.foo {
+         color: #00f
+         & { font-weight: bold }
+         &:hover { background: red }
+       }",
+      "div.foo {
+         color: #00f;
+       }
+       div.foo {
+         font-weight: bold;
+       }
+       div.foo:hover {
+         background: red;
+       }
+       ")
+
+    verifyCss(
+      "div.foo {
+         h1 {
+           span.bar {
+             &:hover { color: green }
+           }
+         }
+         & p { padding: 1em }
+       }",
+       "div.foo h1 span.bar:hover {
+          color: green;
+        }
+        div.foo p {
+          padding: 1em;
+        }
+        ")
+
+    // cannot use self at root
+    verifyErr(Err#) { Fass.compileStr("& { color: red }") }
+  }
+
 /////////////////////////////////////////////////////////////////////////
 // Vars
 //////////////////////////////////////////////////////////////////////////

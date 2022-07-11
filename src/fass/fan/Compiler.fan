@@ -52,8 +52,20 @@
     // create a flattened def for each selector
     r.selectors.each |s|
     {
-      // append selector to qualified selector prefix
-      qs := StrBuf().add(prefix).join(s, " ").toStr
+      qs := ""
+      if (s.startsWith("&"))
+      {
+        // cannot use self at root
+        if (prefix.isEmpty) throw Err("Cannot reference & at root level")
+
+        // if self reference use prefix as-is
+        qs = s.replace("&", prefix)
+      }
+      else
+      {
+        // otherwise append selector to qualified selector prefix
+        qs = StrBuf().add(prefix).join(s, " ").toStr
+      }
 
       f := RulesetDef {
         it.selectors = [qs.toStr]
