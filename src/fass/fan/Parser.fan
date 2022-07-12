@@ -360,6 +360,7 @@ else if (isExprChar(ch) || ch == '>' || ch == '_') { buf.addChar(ch); ch = read 
     if (ch == '=') return true
     if (ch == ':') return true
     if (ch == '&') return true
+    if (ch == '>') return true
     return false
   }
 
