@@ -256,6 +256,13 @@
          color: #f00;
        }
        ")
+
+
+    // var already defined
+    verifyErr(Err#) {
+      x := c("\$foo: 10px
+              \$foo: #f00")
+    }
   }
 
 //////////////////////////////////////////////////////////////////////////
@@ -350,6 +357,22 @@
       "@use '_a.fass'
        h1 {
         color: #333
+        border-color: #444
+       }
+       ",
+      "p {
+         color: #777;
+       }
+       h1 {
+         color: #333;
+         border-color: #444;
+       }
+       ", u)
+
+    verifyCss(
+      "@use '_a.fass'
+       h1 {
+        color: #333
         border-color: \$a1
        }
        ",
@@ -383,6 +406,43 @@
        }
        ", u)
   }
+
+  /*
+  private Void testUseRecursive()
+  {
+    a := "\$a1: #777
+          \$a2: 2em 0
+          p { color: \$a1 }"
+    b := "@use '_a.fass'
+          ul { margin: \$a2 }"
+    u := |n->InStream|
+    {
+      if (n == "_a.fass") return a.in
+      if (n == "_b.fass") return b.in
+      throw Err("Not found '${n}'")
+    }
+
+    verifyCss(
+      "@use '_a.fass'
+       @use '_b.fass'
+       h1 {
+        color: #333
+        border-color: \$a1
+       }
+       ",
+      "p {
+         color: #777;
+       }
+       ul {
+         margin: 2em 0;
+       }
+       h1 {
+         color: #333;
+         border-color: #777;
+       }
+       ", u)
+  }
+  */
 
 //////////////////////////////////////////////////////////////////////////
 // Support

@@ -26,7 +26,7 @@ using concurrent
       if (onUse == null) throw Err("Missing @use resolver func")
       return Parser(onUse(n)).parse
     }
-    Compiler(def).compile(out, use)
+    Compiler().compile(def, out, use)
   }
 
   ** Compile the fass source into native CSS and return as 'Str'.

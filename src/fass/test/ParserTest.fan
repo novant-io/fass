@@ -243,6 +243,12 @@
              padding: \$foo
              span { color: \$bar }
            }")
+    verifyVarAssign(d,   [0], "foo", "10px")
+    verifyVarAssign(d,   [1], "bar", "#f00")
+    verifySelectors(d,   [2], ["p"])
+    verifyDeclaration(d, [2,0], "padding", "foo")
+    verifySelectors(d,   [2,1], ["span"])
+    verifyDeclaration(d, [2,1,0], "color", "bar")
   }
 
 //////////////////////////////////////////////////////////////////////////

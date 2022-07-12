@@ -75,8 +75,8 @@
   ** Parse input stream into AST tree.
   Def parse()
   {
-    root := Def {}
-    stack.add(root)
+    scope := ScopeDef {}
+    stack.add(scope)
     Token? token
 
     while (true)
@@ -160,7 +160,7 @@
     // check for unmatched braces
     if (stack.size > 1) throw parseErr("Missing closing '}'")
 
-    return root
+    return scope
   }
 
 //////////////////////////////////////////////////////////////////////////

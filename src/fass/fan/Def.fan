@@ -10,7 +10,7 @@
 ** Def
 *************************************************************************
 
-@Js internal class Def
+@Js internal abstract class Def
 {
   ** Child nodes for this AST node.
   Def[] children := [,]
@@ -19,11 +19,30 @@
   // Loc loc { file, line }
 
   ** Dump AST to given outsteam.
-  virtual Void dump(OutStream out, Int indent)
+  abstract Void dump(OutStream out, Int indent)
+  // {
+  //   out.print(Str.spaces(indent))
+  //   out.printLine("def")
+  //   children.each |k| { k.dump(out, indent+2) }
+  // }
+}
+
+*************************************************************************
+** ScopeDef
+*************************************************************************
+
+@Js internal class ScopeDef : Def
+{
+  ** Compiled map of var:val for this scope
+  Str:Str cvars := [:]
+
+  override Void dump(OutStream out, Int indent)
   {
-    out.print(Str.spaces(indent))
-    out.printLine("def")
-    children.each |k| { k.dump(out, indent+2) }
+    out.print(Str.spaces(indent)).printLine("scope")
+    cvars.each |v,k|
+    {
+      out.print(Str.spaces(indent+2)).printLine("${k}:${v}")
+    }
   }
 }
 

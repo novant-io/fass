@@ -12,39 +12,54 @@
 
 @Js internal class Compiler
 {
-  ** Construct new compiler for given AST.
-  new make(Def root)
-  {
-    this.root = root
-  }
-
   ** Compile AST to native CSS on given outstream.
-  Void compile(OutStream out, |Str name->Def| onUse)
+  Void compile(ScopeDef scope, OutStream out, |Str name->Def| onUse)
   {
-    flatten.each |d| { compileDef(d, out, onUse) }
+    f := flatten(null, scope, onUse)
+    compileDef(f, f, out)
   }
 
-  ** Flatten all RulesetDefs.
-  private Def[] flatten()
+  ** Flatten all RulesetDefs while resolving VarAssignDef
+  ** and AtRuleDef includes, which get filtered out of the
+  ** flattened list.
+  private ScopeDef flatten(ScopeDef? parent, ScopeDef orig, |Str name->Def| onUse)
   {
-    flat := Def[,]
-    root.children.each |d|
+    flat := ScopeDef {}
+    orig.children.each |d|
     {
       switch (d.typeof)
       {
-        case AtRuleDef#: flat.add(d)
+        case AtRuleDef#:
+          AtRuleDef a := d
+          if (a.rule != "@use") throw Err("Unsupported rule '${a.rule}'")
+          if (a.expr isnot LiteralDef) throw Err("Unsupported @use expr")
+          u := onUse(a.filename)
+          flat.children.add(flatten(flat, u, onUse))
 
         case VarAssignDef#:
           VarAssignDef v := d
-          varmap[v.var.name] = v.expr.val
+          n := v.var.name
+          if (flat.cvars[n] != null) throw Err("Variable already defined '${n}'")
+          flat.cvars.add(v.var.name, v.expr.val)
 
         case RulesetDef#:
-          flattenRuleset(d, "", flat)
+          flattenRuleset(d, "", flat.children)
 
         default:
           throw Err("Unexpected node '${d.typeof}'")
       }
     }
+
+    // merge vars into parent if non-null
+    if (parent != null)
+    {
+      flat.cvars.each |v,n|
+      {
+        if (parent.cvars[n] != null) throw Err("Variable already defined '${n}'")
+        parent.cvars.add(n, v)
+      }
+    }
+
     return flat
   }
 
@@ -81,29 +96,16 @@
         flattenRuleset(k, qs, acc)
       }
     }
-
   }
 
   ** Compile Def node to CSS.
-  private Void compileDef(Def def, OutStream out, |Str name->Def| onUse)
+  private Void compileDef(ScopeDef scope, Def def, OutStream out)
   {
     switch (def.typeof)
     {
-      case AtRuleDef#:
-        AtRuleDef a := def
-        if (a.rule != "@use") throw Err("Unsupported rule '${a.rule}'")
-        if (a.expr isnot LiteralDef) throw Err("Unsupported @use expr")
-        _def := onUse(a.filename)
-        _def.children.each |k|
-        {
-          // inject vars into parent context
-          if (k is VarAssignDef)
-          {
-            VarAssignDef v := k
-            varmap[v.var.name] = v.expr.val
-          }
-        }
-        Compiler(_def).compile(out, onUse)
+      case ScopeDef#:
+        ScopeDef s := def
+        s.children.each |k| { compileDef(s, k, out) }
 
       case RulesetDef#:
         RulesetDef r := def
@@ -111,7 +113,7 @@
         // do not render rule if no declarations
         if (decls.isEmpty) return
         out.print(r.selectors.join(" ")).printLine(" {")
-        decls.each |k| { compileDef(k, out, onUse) }
+        decls.each |k| { compileDef(scope, k, out) }
         out.printLine("}")
 
       case DeclarationDef#:
@@ -119,8 +121,9 @@
         out.print("  ").print(d.prop).print(": ")
         if (d.expr is VarDef)
         {
+          // TODO FIXIT: include [file:line#] in err
           n := d.expr->name
-          v := varmap[n] ?: throw ArgErr("Unknown var '\$${n}'")
+          v := scope.cvars[n] ?: throw ArgErr("Undefined var '\$${n}'")
           out.print(v)
         }
         else
@@ -129,14 +132,7 @@
         }
         out.printLine(";")
 
-      case VarDef#:
-        // vardef does not compile to CSS
-        x := 5
-
       default: throw ArgErr("Unexpected node '${def.typeof}'")
     }
   }
-
-  private Def root                // AST root
-  private Str:Str varmap := [:]   // cache of VarAssignDef name:vals
 }
