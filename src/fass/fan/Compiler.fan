@@ -34,7 +34,16 @@
           if (a.rule != "@use") throw Err("Unsupported rule '${a.rule}'")
           if (a.expr isnot LiteralDef) throw Err("Unsupported @use expr")
           u := onUse(a.filename)
-          flat.children.add(flatten(flat, u, onUse))
+          f := flatten(flat, u, onUse)
+          f.cname = a.filename
+          if (scopeMap[f.cname] == null) scopeMap[f.cname] = f
+          else
+          {
+            // this def already exists, so prune children to avoid
+            // rendereing duplicates; but keep cvar map for scoping
+            f.children.clear
+          }
+          flat.children.add(f)
 
         case VarAssignDef#:
           VarAssignDef v := d
@@ -55,13 +64,17 @@
     {
       flat.cvars.each |v,n|
       {
-        if (parent.cvars[n] != null) throw Err("Variable already defined '${n}'")
-        parent.cvars.add(n, v)
+        // value may already exist from a previous @use import
+        // so only throw if the value does not match
+        pv := parent.cvars[n]
+        if (pv != null && pv != v) throw Err("Variable already defined '${n}'")
+        parent.cvars[n] = v
       }
     }
 
     return flat
   }
+
 
   ** Flatten given ruleset and add to accumlator list.
   private Void flattenRuleset(RulesetDef r, Str prefix, Def[] acc)
@@ -135,4 +148,7 @@
       default: throw ArgErr("Unexpected node '${def.typeof}'")
     }
   }
+
+  // map to track if a scope has already been rendered
+  private Str:ScopeDef scopeMap := [:]
 }

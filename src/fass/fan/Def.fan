@@ -33,6 +33,9 @@
 
 @Js internal class ScopeDef : Def
 {
+  ** Compiler hook to identiy this scope.
+  Str cname := ""
+
   ** Compiled map of var:val for this scope
   Str:Str cvars := [:]
 
