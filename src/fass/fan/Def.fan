@@ -44,8 +44,9 @@
     out.print(Str.spaces(indent)).printLine("scope")
     cvars.each |v,k|
     {
-      out.print(Str.spaces(indent+2)).printLine("${k}:${v}")
+      out.print(Str.spaces(indent+4)).printLine("${k}:${v}")
     }
+    children.each |k| { k.dump(out, indent+2) }
   }
 }
 
@@ -77,6 +78,7 @@
     out.print(Str.spaces(indent))
     out.print(rule).print(" ")
     expr.dump(out, 0)
+    out.printLine("")
   }
 }
 
@@ -148,7 +150,7 @@
 {
   new make(|This| f) { f(this) }
 
-  const Str name
+  Str name
 
   override Void dump(OutStream out, Int indent)
   {
@@ -165,7 +167,7 @@
 {
   new make(|This| f) { f(this) }
 
-  const Str val
+  Str val
 
   override Void dump(OutStream out, Int indent)
   {

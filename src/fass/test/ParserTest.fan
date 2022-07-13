@@ -252,6 +252,34 @@
   }
 
 //////////////////////////////////////////////////////////////////////////
+// Mixed Exprs
+//////////////////////////////////////////////////////////////////////////
+
+  Void testMixedExprs()
+  {
+    d := p("\$foo: #f00
+            div { border: 1px solid \$foo }")
+    verifyVarAssign(d,   [0],   "foo", "#f00")
+    verifySelectors(d,   [1],   ["div"])
+    verifyDeclaration(d, [1,0], "border", ["1px solid ", "foo"])
+
+    d = p("\$x: 25px
+           div { height: calc(100% - \$x) }")
+    verifyVarAssign(d,   [0],   "x", "25px")
+    verifySelectors(d,   [1],   ["div"])
+    verifyDeclaration(d, [1,0], "height", ["calc(100% - ", "x", ")"])
+
+// TODO FIXIT: need to maintain leading space in expr list
+    // d = p("\$x: 85%
+    //        \$y: 20px
+    //        div { height: calc(\$x - \$y) }")
+    // verifyVarAssign(d,   [0],   "x", "85%")
+    // verifyVarAssign(d,   [1],   "y", "20px")
+    // verifySelectors(d,   [2],   ["div"])
+    // verifyDeclaration(d, [2,0], "height", ["calc(", "x", " - ", "y", ")"])
+  }
+
+//////////////////////////////////////////////////////////////////////////
 // Comments
 //////////////////////////////////////////////////////////////////////////
 

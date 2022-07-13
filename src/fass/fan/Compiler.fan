@@ -132,6 +132,7 @@
       case DeclarationDef#:
         DeclarationDef d := def
         out.print("  ").print(d.prop).print(": ")
+        buf := StrBuf()
         d.exprs.each |expr|
         {
           if (expr is VarDef)
@@ -139,13 +140,14 @@
             // TODO FIXIT: include [file:line#] in err
             n := expr->name
             v := scope.cvars[n] ?: throw ArgErr("Undefined var '\$${n}'")
-            out.print(v)
+            buf.add(v)
           }
           else
           {
-            out.print(expr->val)
+            buf.add(expr->val)
           }
         }
+        out.print(buf.toStr.split.join(" "))  // filter excess whitepsace
         out.printLine(";")
 
       default: throw ArgErr("Unexpected node '${def.typeof}'")

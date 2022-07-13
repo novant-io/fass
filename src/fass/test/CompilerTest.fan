@@ -299,10 +299,43 @@
   }
 
 //////////////////////////////////////////////////////////////////////////
+// Mixed Exprs
+//////////////////////////////////////////////////////////////////////////
+
+  Void testMixedExprs()
+  {
+    verifyCss(
+     "\$foo: #f00
+      div { border: 1px solid \$foo }",
+     "div {
+        border: 1px solid #f00;
+      }
+      ")
+
+    verifyCss(
+     "\$x: 25px
+      div { height: calc(100% - \$x) }",
+     "div {
+        height: calc(100% - 25px);
+      }
+      ")
+
+// TODO FIXIT
+    // verifyCss(
+    //  "\$x: 85%
+    //   \$y: 20px
+    //   div { height: calc(\$x - \$y) }",
+    //  "div {
+    //     height: calc(80% - 20px);
+    //   }
+    //   ")
+  }
+
+//////////////////////////////////////////////////////////////////////////
 // Use
 //////////////////////////////////////////////////////////////////////////
 
-  private Void testUseSimple()
+  Void testUseSimple()
   {
     a := "p { color:#777 }"
     b := "ul { margin: 2em 0 }"
@@ -340,7 +373,7 @@
        ", u)
   }
 
-  private Void testUseVar()
+  Void testUseVar()
   {
     a := "\$a1: #777
           p { color: \$a1 }"
@@ -407,7 +440,7 @@
        ", u)
   }
 
-  private Void testUseRecursive()
+  Void testUseRecursive()
   {
     a := "\$a1: #777
           \$a2: 2em 0

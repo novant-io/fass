@@ -97,7 +97,8 @@
           var := VarDef { it.name=token.val }
           nextToken(TokenType.colon)
           token = nextToken
-          expr := LiteralDef { it.val=token.val }
+          // trim the var name since token phase will leave trailing space
+          expr := LiteralDef { it.val=token.val.trim }
           def  := VarAssignDef { it.var=var; it.expr=expr }
           parent.children.add(def)
 
@@ -137,15 +138,29 @@
         case TokenType.property:
           prop := token.val
           nextToken(TokenType.colon)
-          Def? expr
+          // read one token ahead to see if we have mixed expr defs
+          exprs := Def[,]
           token = nextToken
-          if (token.isExpr) expr = LiteralDef { it.val=token.val }
-          else if (token.isVar) expr = VarDef { it.name=token.val }
-          else throw unexpectedToken(token)
+          while (token.isExpr || token.isVar)
+          {
+            exprs.add(token.isExpr
+              ? LiteralDef { it.val=token.val }
+              : VarDef { it.name=token.val })
+            token = nextToken
+          }
+          unreadToken(token)
+          // trim the first expr since we left space in the token phases
+          s := exprs.first
+          if (s is LiteralDef) s->val = ((Str)s->val).trimStart
+          else s->name = ((Str)s->name).trimStart
+          // trim the last expr since we left space in the token phases
+          e := exprs.last
+          if (e is LiteralDef) e->val = ((Str)e->val).trimEnd
+          else e->name = ((Str)e->name).trimEnd
           def := DeclarationDef
           {
             it.prop  = prop
-            it.exprs = [expr]
+            it.exprs = exprs
           }
           parent.children.add(def)
 
@@ -242,10 +257,13 @@
       buf.addChar(ch)
       while (peek != null && isVarChar(peek)) buf.addChar(read)
 
-      // eat leading whitespace and check for ':' for assign cx
-      while (peek.isSpace) ch = read
+      // eat leading whitespace and check for ':' or \n for cx
+      while (peek.isSpace)
+      {
+        if (peek == '\n') cx = 0
+        ch = read
+      }
       if (peek == ':') cx = 1
-      else cx = 0
       return Token(TokenType.var, buf.toStr.trim)
     }
 
@@ -322,6 +340,9 @@
         if (ch == '/' && peek == '*') break
         if (ch == '/' && peek == '/') break
 
+        // hit a var
+        if (ch == '\$') break
+
         // check line ending or keep going
         if (ch == null || ch == ';' || ch == '\n' || ch == '}') break
         // else if (isExprChar(ch)) { buf.addChar(ch); ch = read }
@@ -330,10 +351,13 @@ else if (isExprChar(ch) || ch == '>' || ch == '_') { buf.addChar(ch); ch = read 
         else throw unexpectedChar(ch)
       }
 
-      // pushback last char and reset cx state
+      // pushback last char and reset cx state if we're not
+      // expecteding var; also make sure we do not remove
+      // any whitespace so we preservice internal whitespace
+      // for mixed exprs during the compiler cvar phase
       if (ch != null) unread(ch)
-      cx = 0
-      return Token(TokenType.expr, buf.toStr.trim)
+      if (ch != '\$') cx = 0
+      return Token(TokenType.expr, buf.toStr)
     }
   }
 
