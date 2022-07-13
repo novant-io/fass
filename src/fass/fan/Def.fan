@@ -67,9 +67,10 @@
     v := expr->val.toStr
     if (v.size >= 3)
     {
-      if (v.startsWith("'"))  return v[1..-2]
-      if (v.startsWith("\"")) return v[1..-2]
+      if (v.startsWith("'"))  v = v[1..-2]
+      if (v.startsWith("\"")) v = v[1..-2]
     }
+    if (!v.endsWith(".fass")) v += ".fass"
     return v
   }
 
