@@ -108,13 +108,13 @@
   new make(|This| f) { f(this) }
 
   const Str prop
-  Def expr
+  Def[] exprs
 
   override Void dump(OutStream out, Int indent)
   {
     out.print(Str.spaces(indent))
     out.print(prop).print(": ")
-    expr.dump(out, 0)
+    exprs.each |e| { e.dump(out, 0) }
     out.printLine("")
   }
 }

@@ -144,8 +144,8 @@
           else throw unexpectedToken(token)
           def := DeclarationDef
           {
-            it.prop = prop
-            it.expr = expr
+            it.prop  = prop
+            it.exprs = [expr]
           }
           parent.children.add(def)
 

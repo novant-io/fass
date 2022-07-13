@@ -132,16 +132,19 @@
       case DeclarationDef#:
         DeclarationDef d := def
         out.print("  ").print(d.prop).print(": ")
-        if (d.expr is VarDef)
+        d.exprs.each |expr|
         {
-          // TODO FIXIT: include [file:line#] in err
-          n := d.expr->name
-          v := scope.cvars[n] ?: throw ArgErr("Undefined var '\$${n}'")
-          out.print(v)
-        }
-        else
-        {
-          out.print(d.expr->val)
+          if (expr is VarDef)
+          {
+            // TODO FIXIT: include [file:line#] in err
+            n := expr->name
+            v := scope.cvars[n] ?: throw ArgErr("Undefined var '\$${n}'")
+            out.print(v)
+          }
+          else
+          {
+            out.print(expr->val)
+          }
         }
         out.printLine(";")
 
