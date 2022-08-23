@@ -1,4 +1,4 @@
-# FASS: Fan-tastically Awesome Style Sheets
+# Fass: Fan-tastically Awesome Style Sheets
 
 ```scss
 bodyFont  := Helvetica, sans-serif
