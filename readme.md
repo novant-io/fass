@@ -1,12 +1,12 @@
 # FASS: Fan-tastically Awesome Style Sheets
 
 ```scss
-$body-font: Helvetica, sans-serif;
-$text-color: #333;
+bodyFont  := Helvetica, sans-serif
+textColor := #333
 
 body {
-  font: 14pt $body-font;
-  color: $text-color;
+  font: 14pt $bodyFont
+  color: $textColor
 }
 
 ```
