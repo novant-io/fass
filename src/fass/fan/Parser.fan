@@ -1,59 +1,10 @@
 //
 // Copyright (c) 2022, Novant LLC
-// All Rights Reserved
+// Licensed under the MIT License
 //
 // History:
-//   7 Jul 2022  Andy Frank  Creation
+//   14 Jul 2022  Andy Frank  Creation
 //
-
-*************************************************************************
-** TokenType
-*************************************************************************
-
-@Js internal enum class TokenType
-{
-  openBrace,
-  closeBrace,
-  comma,
-  colon,
-  semicolon,
-  atRule,
-  selector,
-  property,
-  expr,
-  var,
-  eos
-}
-
-*************************************************************************
-** Token
-*************************************************************************
-
-@Js internal const class Token
-{
-  ** Ctor.
-  new make(TokenType t, Str v) { this.type=t; this.val=v }
-
-  ** Token type.
-  const TokenType type
-
-  ** Token literval val.
-  const Str val
-
-  Bool isOpenBrace()  { type == TokenType.openBrace  }
-  Bool isCloseBrace() { type == TokenType.closeBrace }
-  Bool isComma()      { type == TokenType.comma      }
-  Bool isColon()      { type == TokenType.colon      }
-  Bool isAtRule()     { type == TokenType.atRule     }
-  Bool isSemicolon()  { type == TokenType.semicolon  }
-  Bool isSelector()   { type == TokenType.selector   }
-  Bool isProperty()   { type == TokenType.property   }
-  Bool isExpr()       { type == TokenType.expr       }
-  Bool isVar()        { type == TokenType.var        }
-  Bool isEos()        { type == TokenType.eos        }
-
-  override Str toStr() { "${type}='${val}'" }
-}
 
 *************************************************************************
 ** Parser
@@ -61,422 +12,176 @@
 
 @Js internal class Parser
 {
-
-//////////////////////////////////////////////////////////////////////////
-// Construction
-//////////////////////////////////////////////////////////////////////////
-
-  ** Ctor.
-  new make(InStream in)
+  ** Construcor.
+  new make(Obj file, InStream in)
   {
-    this.in = in
+    this.tokenizer = Tokenizer(file, in)
   }
 
   ** Parse input stream into AST tree.
   Def parse()
   {
-    scope := ScopeDef {}
-    stack.add(scope)
-    Token? token
+    root  := Def()
+    scope := [root]
+    token := tokenizer.next
 
-    while (true)
+    while (!token.isEos)
     {
-      // read next token or break if eos
-      token = nextToken
-      if (token.isEos) break
+      pre := scope.last  // scope before we parse next token
+      Def? post          // scope after we parse next token
 
-      // process next token
-      parent := stack.last
+      // parse
       switch (token.type)
       {
-        // semicolon
-        case TokenType.semicolon: noBreakIsStoopid := 0
-
-        // var assign
-        case TokenType.var:
-          var := VarDef { it.name=token.val }
-          nextToken(TokenType.colon)
-          token = nextToken
-          // trim the var name since token phase will leave trailing space
-          expr := LiteralDef { it.val=token.val.trim }
-          def  := VarAssignDef { it.var=var; it.expr=expr }
-          parent.children.add(def)
-
-        // at-rule
-        case TokenType.atRule:
-          rule := token
-          cx = 2
-          Def? expr
-          token = nextToken
-          if (token.isExpr) expr = LiteralDef { it.val=token.val }
-          else if (token.isVar) expr = VarDef { it.name=token.val }
-          else throw unexpectedToken(token)
-          def := AtRuleDef { it.rule=rule.val; it.expr=expr }
-          parent.children.add(def)
-
-        // selectors
-        case TokenType.selector:
-          // read ahead to check for additional selectors
-          sels := [token.val]
-          while (true)
-          {
-            token = nextToken
-            if (token.isComma)
-            {
-              token = nextToken(TokenType.selector)
-              sels.add(token.val)
-              continue
-            }
-            if (token.isOpenBrace) break
-            throw unexpectedToken(token)
-          }
-          def := RulesetDef { it.selectors=sels }
-          parent.children.add(def)
-          stack.push(def)
-
-        // props
-        case TokenType.property:
-          prop := token.val
-          nextToken(TokenType.colon)
-          // read one token ahead to see if we have mixed expr defs
-          exprs := Def[,]
-          token = nextToken
-          while (token.isExpr || token.isVar)
-          {
-            exprs.add(token.isExpr
-              ? LiteralDef { it.val=token.val }
-              : VarDef { it.name=token.val })
-            token = nextToken
-          }
-          unreadToken(token)
-          // trim the first expr since we left space in the token phases
-          s := exprs.first
-          if (s is LiteralDef) s->val = ((Str)s->val).trimStart
-          else s->name = ((Str)s->name).trimStart
-          // trim the last expr since we left space in the token phases
-          e := exprs.last
-          if (e is LiteralDef) e->val = ((Str)e->val).trimEnd
-          else e->name = ((Str)e->name).trimEnd
-          def := DeclarationDef
-          {
-            it.prop  = prop
-            it.exprs = exprs
-          }
-          parent.children.add(def)
-
-        // close brace
-        case TokenType.closeBrace: stack.pop
-
-        // err
+        case TokenType.term:       post = parseTerm(pre, token)
+        case TokenType.closeBrace: scope.pop
+        case TokenType.newline:    x := 10   // no-op
+        case TokenType.semicolon:  x := 10   // no-op
         default: throw unexpectedToken(token)
       }
+
+      // check if we need to push new scope
+      if (post != null && pre != post) scope.push(post)
+
+      // advance
+      token = tokenizer.next
     }
 
-    // check for unmatched braces
-    if (stack.size > 1) throw parseErr("Missing closing '}'")
-
-    return scope
+    return root
   }
 
-//////////////////////////////////////////////////////////////////////////
-// Tokenizer
-//////////////////////////////////////////////////////////////////////////
-
-  ** Read next token from stream.  If 'type' is non-null
-  ** and does match read token, throw ParseErr.
-  private Token nextToken(TokenType? type := null)
+  ** Parse a term and return new scope.
+  private Def parseTerm(Def cur, Token token)
   {
-    // read next token
-    token := readNextToken
+    orig := token
 
-    // wrap in eos if hit end of file
-    if (token == null) token = Token(TokenType.eos, "")
-
-    // check match
-    if (type != null && token?.type != type) throw unexpectedToken(token)
-
-    return token
-  }
-
-  ** Unread given token.
-  private Void unreadToken(Token token)
-  {
-    pushback.push(token)
-  }
-
-  ** Read next token from stream or 'null' if EOS.
-  private Token? readNextToken()
-  {
-    // first check pushback
-    if (pushback.size > 0) return pushback.pop
-
-    buf.clear
-
-    // read next char (eat leading whitespace)
-    ch := read
-    while (ch != null && ch.isSpace) ch = read
-
-    // eos
-    if (ch == null) return null
-
-    // eat block comment
-    if (ch == '/' && peek == '*')
+    // check for @using
+    if (token.val == "@using")
     {
-      ch = read
-      ch = read
-      while (true)
-      {
-        if (ch == null) throw unexpectedChar(null)
-        if (ch == '*' && peek == '/') { read; break }
-        ch = read
-      }
-      // eat trailing / and recurse
-      return readNextToken
+      ref := tokenizer.next
+      if (!token.isTerm) throw unexpectedToken(token)
+      cur.add(UsingDef { it.loc=orig.loc; it.ref= normRef(ref) })
+      return cur
     }
 
-    // eat line comment
-    if (ch == '/' && peek == '/')
+    // read next token to check
+    token = tokenizer.next
+    if (token.isAssign)
     {
-      // read till end of line and recurse
-      while (peek != null && peek != '\n') read
-      return readNextToken
+      defs := Def[,]
+      token = tokenizer.next
+      while (token.isTerm || token.isVar)
+      {
+        defs.add(parseExprDef(token))
+        token = tokenizer.next
+      }
+      tokenizer.push(token)
+      expr := ExprDef   { it.loc=defs.first.loc; it.defs=defs }
+      cur.add(AssignDef { it.loc=orig.loc; it.name=orig.val; it.expr=expr })
+      return cur
     }
 
-    // exact matches
-    if (ch == '{') return Token(TokenType.openBrace,  "{")
-    if (ch == '}') return Token(TokenType.closeBrace, "}")
-    if (ch == ',') return Token(TokenType.comma,      ",")
-    if (ch == ':') return Token(TokenType.colon,      ":")
-    if (ch == ';') return Token(TokenType.semicolon,  ";")
-
-    // var
-    if (ch == '\$')
+    // read-ahead to identify selector list or prop declare
+    acc := [orig]
+    while (token.isTerm || token.isVar || token.isComma)
     {
-      ch = read
-      if (!ch.isAlpha) throw unexpectedChar(ch)
-      buf.addChar(ch)
-      while (peek != null && isVarChar(peek)) buf.addChar(read)
-
-      // eat leading whitespace and check for ':' or \n for cx
-      while (peek.isSpace)
-      {
-        if (peek == '\n') cx = 0
-        ch = read
-      }
-      if (peek == ':') cx = 1
-      return Token(TokenType.var, buf.toStr.trim)
+      acc.add(token)
+      token = tokenizer.next
+      // eat trailing newlines after a comma
+      while (token.isNewline && acc.last.isComma) token = tokenizer.next
     }
 
-    // at-rule
-    if (ch == '@')
+    if (token.isOpenBrace)
     {
-      buf.addChar(ch)
-      while (peek != null && isSelectorChar(peek)) buf.addChar(read)
-      // NOTE: to keep things simply for now, we check for an
-      // allowlist match for at-rules, so we can avoid having
-      // to identify @rule <prop> vs @rule { ... }
-      temp := buf.toStr.trim
-      return isAtRule(temp)
-        ? Token(TokenType.atRule,   temp)
-        : Token(TokenType.selector, temp)
+      // parse as ruleset selector list
+      sels := Str[,]
+      acc.each |t,i|
+      {
+        if (t.isComma) sels.add("")
+        else if (i == 0) sels.add(t.val)
+        else sels[-1] = "${sels[-1]} ${t.val}".trim
+      }
+      ruleset := RulesetDef { it.loc=orig.loc; it.selectors=sels }
+      cur.add(ruleset)
+      return ruleset
     }
-
-    // check context to see expected token
-    if (cx == 0)
+    else if (token.isDelim)
     {
-      // selector or property
-      if (!isSelectorChar(ch) && !isPropertyChar(ch)) throw unexpectedChar(ch)
-      buf.addChar(ch)
-      while (peek != null && (isSelectorChar(peek) || isPropertyChar(peek)))
-      {
-        buf.addChar(read)
-      }
+      // push delim back onto stack
+      tokenizer.push(token)
 
-      // eat leading whitespace, but retain in buf in
-      // case we need to pushback (filter out later)
-      while (peek.isSpace) buf.addChar(ch = read)
+      // parse as prop declartion
+      // tokenizer leaves ':' in place; so split first term
+      temp := acc.first.val
+      i := temp.index(":")
+      if (i == null) throw err(orig, "Unexpected token '${token}")
+      x := temp[0..<i]
+      y := temp[i+1..-1].trimToNull
 
-      // check next char for selector vs prop
-      if (peek == '{' || peek == ',')
-      {
-        // set cx, re-validate as selector, fitler excess whitespace
-        cx = 0
-        temp := buf.toStr.trim.split.join(" ")
-        temp.each |x| { if (!isSelectorChar(x)) throw unexpectedChar(x) }
-        return Token(TokenType.selector, temp)
-      }
-      else
-      {
-        // valid selectors can include ':' so we need to check
-        // if we consumed and pushback onto instream
-        temp   := buf.toStr
-        offset := temp.index(":")
-        if (offset != null)
-        {
-          (temp.size - offset).times |p| { in.unreadChar(temp[-(p+1)]) }
-          temp = temp[0..<offset]
-        }
+      // insert split terms back into read-ahead acc
+      acc[0] = Token(TokenType.term, x, orig.loc)
+      if (y != null) acc.insert(1, Token(TokenType.term, y, orig.loc))
 
-        // set cx, re-validate as property, filter excess whitepsace
-        cx = 2
-        temp = temp.trim.split.join(" ")
-        temp.each |x| { if (!isPropertyChar(x)) throw unexpectedChar(x) }
-        return Token(TokenType.property, temp)
+      // validate enough params
+      if (acc.size < 2) throw err(orig, "Expecting declaration expr")
+
+      prop := acc.first.val
+      defs := Def[,]
+      acc.eachRange(1..-1) |t|
+      {
+        if (t.isNewline) return
+        if (t.val.contains(":")) throw err(t, "Unexpected char ':'")
+        defs.add(parseExprDef(t))
       }
+      expr := ExprDef    { it.loc=defs.first.loc; it.defs=defs }
+      def  := DeclareDef { it.loc=orig.loc; it.prop=prop; it.expr=expr }
+      cur.add(def)
+      return cur
     }
-    else
+
+    // invalid syntax if we get here
+    throw unexpectedToken(token)
+  }
+
+  ** Normalize ref format.
+  private Str normRef(Token token)
+  {
+    // remove quotes if specified
+    s := token.val
+    q := s[0]
+    if (q == '\'' || q == '\"')
     {
-      // expr
-      while (true)
-      {
-        // if we hit a comma, allow a newline
-        if (ch == ',')
-        {
-          buf.addChar(ch)
-          while (peek != null && peek.isSpace) ch = read
-        }
-
-        // hit a comment
-        if (ch == '/' && peek == '*') break
-        if (ch == '/' && peek == '/') break
-
-        // hit a var
-        if (ch == '\$') break
-
-        // check line ending or keep going
-        if (ch == null || ch == ';' || ch == '\n' || ch == '}') break
-        // else if (isExprChar(ch)) { buf.addChar(ch); ch = read }
-// TODO FIXIT: need to allow any char inside a quoted str
-else if (isExprChar(ch) || ch == '>' || ch == '_') { buf.addChar(ch); ch = read }
-        else throw unexpectedChar(ch)
-      }
-
-      // pushback last char and reset cx state if we're not
-      // expecteding var; also make sure we do not remove
-      // any whitespace so we preservice internal whitespace
-      // for mixed exprs during the compiler cvar phase
-      if (ch != null) unread(ch)
-      if (ch != '\$') cx = 0
-      return Token(TokenType.expr, buf.toStr)
+      if (s[-1] != q) throw err(token, "Unmatched closing quote: ${token.val}")
+      s = s[1..-2]
     }
+
+    // append .fass ext if missing
+    if (!s.endsWith(".fass")) s += ".fass"
+
+    return s
   }
 
-  ** Return 'true' if str is a valid at-rule.
-  private Bool isAtRule(Str s)
+  ** Parsed an token inside an expression.
+  private Def parseExprDef(Token token)
   {
-    if (s == "@use") return true
-    return false
+    if (token.isTerm || token.isComma) return LiteralDef { it.loc=token.loc; it.val=token.val }
+    if (token.isVar)  return VarDef { it.loc=token.loc; it.name=token.val }
+    throw unexpectedToken(token)
   }
 
-  ** Return 'true' if this ch is a valid selector char.
-  private Bool isSelectorChar(Int ch)
-  {
-    if (ch.isAlphaNum) return true
-    if (ch == ' ') return true
-    if (ch == '#') return true
-    if (ch == '.') return true
-    if (ch == '+') return true
-    if (ch == '-') return true
-    if (ch == '(') return true
-    if (ch == ')') return true
-    if (ch == '[') return true
-    if (ch == ']') return true
-    if (ch == '=') return true
-    if (ch == ':') return true
-    if (ch == '&') return true
-    if (ch == '>') return true
-    return false
-  }
-
-  ** Return 'true' if this ch is a valid property char.
-  private Bool isPropertyChar(Int ch)
-  {
-    if (ch.isAlpha) return true
-    if (ch == '-')  return true
-    return false
-  }
-
-  ** Return 'true' if this ch is a valid expr char.
-  private Bool isExprChar(Int ch)
-  {
-    if (ch.isAlphaNum) return true
-    if (ch == ' ') return true
-    if (ch == '#') return true
-    if (ch == '.') return true
-    if (ch == '+') return true
-    if (ch == '-') return true
-    if (ch == '/') return true
-    if (ch == '*') return true
-    if (ch == '%') return true
-    if (ch == ',') return true
-    if (ch == '(') return true
-    if (ch == ')') return true
-    if (ch == '\'') return true
-    if (ch == '\"') return true
-    if (ch == '!') return true
-    return false
-  }
-
-  ** Return 'true' if this ch is a valid var char.
-  private Bool isVarChar(Int ch)
-  {
-    if (ch.isAlphaNum) return true
-    if (ch == '_') return true
-    return false
-  }
-
-  ** Read next char in stream.
-  private Int? read()
-  {
-    ch := in.readChar
-    if (ch == '\n') line++
-    return ch
-  }
-
-  ** Push char back on stream.
-  private Void unread(Int ch) { in.unreadChar(ch) }
-
-  ** Peek next char in stream.
-  private Int? peek() { in.peekChar }
-
-  ** Throw ParseErr
-  private Err parseErr(Str msg)
-  {
-    ParseErr("${msg} [line:${line}]")
-  }
-
-  ** Throw ParseErr
-  private Err unexpectedChar(Int? ch)
-  {
-    ch == null
-      ? parseErr("Unexpected end of stream")
-      : parseErr("Unexpected char: '$ch.toChar'")
-  }
-
-  ** Throw ParseErr
+  ** Err for unexpected token.
   private Err unexpectedToken(Token token)
   {
-    token.isEos
-      ? parseErr("Unexpected end of stream")
-      : parseErr("Unexpected token: '$token.val'")
+    err(token, token.isEos
+      ? "Unexpected end of stream"
+      : "Unexpected token: '${token.val}'")
   }
 
-//////////////////////////////////////////////////////////////////////////
-// Fields
-//////////////////////////////////////////////////////////////////////////
+  ** Err error with location.
+  private FassCompileErr err(Token token, Str msg)
+  {
+    FassCompileErr(msg, token.loc)
+  }
 
-  //
-  // Current context state:
-  //
-  //   0: root
-  //   1: inside var assign
-  //   2: inside prop declaration
-  //
-  private Int cx := 0
-
-  private InStream in               // input stream
-  private Int line := 1             // current line number
-  private Def[] stack := [,]        // AST node stack
-  private StrBuf buf := StrBuf()    // resuse buf in nextToken
-  private Token[] pushback := [,]   // for unreadToken
+  private Tokenizer tokenizer
 }

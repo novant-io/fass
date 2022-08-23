@@ -18,7 +18,7 @@ class Build : build::BuildPod
       "repo.public":  "true",
       "repo.tags":    "web",
     ]
-    depends = ["sys 1.0", "concurrent 1.0"]
+    depends = ["sys 1.0", "util 1.0", "concurrent 1.0"]
     srcDirs = [`fan/`, `test/`]
     docApi  = true
     docSrc  = true

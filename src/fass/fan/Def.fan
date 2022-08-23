@@ -1,85 +1,131 @@
 //
 // Copyright (c) 2022, Novant LLC
-// All Rights Reserved
+// Licensed under the MIT License
 //
 // History:
 //   20 Jun 2022  Andy Frank  Creation
 //
 
+using util
+
 *************************************************************************
 ** Def
 *************************************************************************
 
-@Js internal abstract class Def
+@Js internal class Def
 {
+  ** Parent def of 'null' for root.
+  Def? parent := null
+
+  ** Location where this node was defined.
+  FileLoc loc := FileLoc.unknown
+
   ** Child nodes for this AST node.
   Def[] children := [,]
 
-  // TODO
-  // Loc loc { file, line }
+  ** Append node to 'children'
+  This add(Def child)
+  {
+    child.parent = this
+    children.add(child)
+    return this
+  }
+
+  ** Get all var assingments for this def.
+  AssignDef[] vars() { children.findType(AssignDef#) }
+
+  ** Get expr value for given var.
+  ExprDef? var(Str name)
+  {
+    a := vars.find |d| { d->name == name }
+    if (a != null) return a->expr
+    if (parent != null) return parent.var(name)
+    return null
+  }
 
   ** Dump AST to given outsteam.
-  abstract Void dump(OutStream out, Int indent)
-  // {
-  //   out.print(Str.spaces(indent))
-  //   out.printLine("def")
-  //   children.each |k| { k.dump(out, indent+2) }
-  // }
-}
-
-*************************************************************************
-** ScopeDef
-*************************************************************************
-
-@Js internal class ScopeDef : Def
-{
-  ** Compiler hook to identiy this scope.
-  Str cname := ""
-
-  ** Compiled map of var:val for this scope
-  Str:Str cvars := [:]
-
-  override Void dump(OutStream out, Int indent)
+  virtual Void dump(OutStream out, Int indent)
   {
-    out.print(Str.spaces(indent)).printLine("scope")
-    cvars.each |v,k|
-    {
-      out.print(Str.spaces(indent+4)).printLine("${k}:${v}")
-    }
+    out.print(Str.spaces(indent))
+    out.printLine("def [$loc]")
     children.each |k| { k.dump(out, indent+2) }
   }
 }
 
 *************************************************************************
-** AtRuleDef
+** LiteralDef
 *************************************************************************
 
-@Js internal class AtRuleDef : Def
+@Js internal class LiteralDef : Def
 {
   new make(|This| f) { f(this) }
 
-  const Str rule
-  Def expr
+  const Str val
 
-  Str filename()
+  override Void dump(OutStream out, Int indent)
   {
-    if (expr isnot LiteralDef) throw ArgErr("Invalid expr '${expr}'")
-    v := expr->val.toStr
-    if (v.size >= 3)
-    {
-      if (v.startsWith("'"))  v = v[1..-2]
-      if (v.startsWith("\"")) v = v[1..-2]
-    }
-    if (!v.endsWith(".fass")) v += ".fass"
-    return v
+    out.print(Str.spaces(indent)).print(val)
   }
+}
+
+*************************************************************************
+** LiteralDef
+*************************************************************************
+
+@Js internal class VarDef : Def
+{
+  new make(|This| f) { f(this) }
+
+  const Str name
+
+  override Void dump(OutStream out, Int indent)
+  {
+    out.print(Str.spaces(indent)).print("\$").print(name)
+  }
+}
+
+*************************************************************************
+** ExprDef
+*************************************************************************
+
+@Js internal class ExprDef : Def
+{
+  new make(|This| f)
+  {
+    f(this)
+    this.defs.each |d| { d.parent = this }
+  }
+
+  Def[] defs
 
   override Void dump(OutStream out, Int indent)
   {
     out.print(Str.spaces(indent))
-    out.print(rule).print(" ")
+    defs.each |d| { d.dump(out, 0) }
+  }
+}
+
+*************************************************************************
+** AssignDef
+*************************************************************************
+
+@Js internal class AssignDef : Def
+{
+  new make(|This| f)
+  {
+    f(this)
+    this.expr.parent = this
+  }
+
+  const Str name
+  ExprDef expr
+
+  override Void dump(OutStream out, Int indent)
+  {
+    out.print(Str.spaces(indent))
+    out.print(name).print(" := ")
     expr.dump(out, 0)
-    out.printLine("")
+    out.printLine(" [$loc]")
   }
 }
 
@@ -93,86 +139,81 @@
 
   const Str[] selectors
 
+  ** Return flattened selector names.
+  Str[] flattenSels()
+  {
+    // get ruleset path segments
+    path := [this]
+    def  := parent
+    while (def is RulesetDef)
+    {
+      path.add(def)
+      def = def.parent
+    }
+
+    // flatten
+    return Flatten.flatten(path.reverse)
+  }
+
   override Void dump(OutStream out, Int indent)
   {
     out.print(Str.spaces(indent))
-    out.print(selectors.join(", ")).printLine(" {")
+    out.print(selectors.join(", ")).printLine(" { [$loc]")
     children.each |k| { k.dump(out, indent+2) }
     out.print(Str.spaces(indent)).printLine("}")
   }
 }
 
 *************************************************************************
-** DeclarationDef
+** DeclareDef
 *************************************************************************
 
-@Js internal class DeclarationDef : Def
+@Js internal class DeclareDef : Def
 {
-  new make(|This| f) { f(this) }
+  new make(|This| f)
+  {
+    f(this)
+    this.expr.parent = this
+  }
 
   const Str prop
-  Def[] exprs
+  ExprDef expr
 
   override Void dump(OutStream out, Int indent)
   {
     out.print(Str.spaces(indent))
     out.print(prop).print(": ")
-    exprs.each |e| { e.dump(out, 0) }
-    out.printLine("")
-  }
-}
-
-*************************************************************************
-** VarAssignDef
-*************************************************************************
-
-@Js internal class VarAssignDef : Def
-{
-  new make(|This| f) { f(this) }
-
-  VarDef var
-  LiteralDef expr
-
-  override Void dump(OutStream out, Int indent)
-  {
-    out.print(Str.spaces(indent))
-    var.dump(out, 0)
-    out.print(": ")
     expr.dump(out, 0)
-    out.printLine("")
+    out.printLine(" [$loc]")
   }
 }
 
 *************************************************************************
-** VarDef
+** UsingDef
 *************************************************************************
 
-@Js internal class VarDef : Def
+@Js internal class UsingDef : Def
 {
   new make(|This| f) { f(this) }
 
-  Str name
+  const Str ref
+
+  // Str filename()
+  // {
+  //   if (expr isnot LiteralDef) throw ArgErr("Invalid expr '${expr}'")
+  //   v := expr->val.toStr
+  //   if (v.size >= 3)
+  //   {
+  //     if (v.startsWith("'"))  v = v[1..-2]
+  //     if (v.startsWith("\"")) v = v[1..-2]
+  //   }
+  //   if (!v.endsWith(".fass")) v += ".fass"
+  //   return v
+  // }
 
   override Void dump(OutStream out, Int indent)
   {
-    out.print(Str.spaces(indent))
-    out.print("\$").print(name)
-  }
-}
-
-*************************************************************************
-** LiteralDef
-*************************************************************************
-
-@Js internal class LiteralDef : Def
-{
-  new make(|This| f) { f(this) }
-
-  Str val
-
-  override Void dump(OutStream out, Int indent)
-  {
-    out.print(Str.spaces(indent))
-    out.print(val)
+    out.print(Str.spaces(indent)).print("@using ${ref}")
+    out.printLine(" [$loc]")
   }
 }

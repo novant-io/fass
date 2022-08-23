@@ -1,6 +1,6 @@
 //
 // Copyright (c) 2022, Novant LLC
-// All Rights Reserved
+// Licensed under the MIT License
 //
 // History:
 //   20 Jun 2022  Andy Frank  Creation
@@ -15,16 +15,17 @@ using concurrent
 @Js const class Fass
 {
   ** Compile the fass source from 'in' into native CSS and write
-  ** results to 'out'. If the source contains '@use' at-rules then
+  ** results to 'out'. If the source contains '@using' imports
   ** 'onUse' is required to resolve the filename to an 'InStream'
   ** for referenced fass content.
-  static Void compile(InStream in, OutStream out, |Str name->InStream|? onUse := null)
+  static Void compile(Obj file, InStream in, OutStream out, |Str name->InStream|? onUse := null)
   {
-    def := Parser(in).parse
+    def := Parser(file, in).parse
     use := |Str n->Def|
     {
-      if (onUse == null) throw Err("Missing @use resolver func")
-      return Parser(onUse(n)).parse
+      if (onUse == null) throw Err("Missing @using resolver func")
+      f := file is File ? ((file as File) + n.toUri).osPath : n
+      return Parser(f, onUse(n)).parse
     }
     Compiler().compile(def, out, use)
   }
@@ -33,7 +34,7 @@ using concurrent
   static Str compileStr(Str fass)
   {
     buf := StrBuf()
-    Fass.compile(fass.in, buf.out)
+    Fass.compile("str", fass.in, buf.out)
     return buf.toStr
   }
 }

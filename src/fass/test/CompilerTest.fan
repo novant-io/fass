@@ -1,6 +1,6 @@
 //
 // Copyright (c) 2022, Novant LLC
-// All Rights Reserved
+// Licensed under the MIT License
 //
 // History:
 //   21 Jun 2022  Andy Frank  Creation
@@ -45,10 +45,7 @@
 
     verifyCss(
       "a.foo, p.bar { color: #fff }",
-      "a.foo {
-         color: #fff;
-       }
-       p.bar {
+      "a.foo, p.bar {
          color: #fff;
        }
        ")
@@ -72,15 +69,36 @@
 // Declarations
 //////////////////////////////////////////////////////////////////////////
 
-  Void testDeclarations()
+  Void testDeclare()
   {
+    verifyCss(
+      "div { color: #567 }",
+      "div {
+         color: #567;
+       }
+       ")
+
+    verifyCss(
+      "div { border: 1px solid #f00 }",
+      "div {
+         border: 1px solid #f00;
+       }
+       ")
+
+    verifyCss(
+      "div { height: calc(100% - 25px) }",
+      "div {
+         height: calc(100% - 25px);
+       }
+       ")
+
     verifyCss(
       "@font-face {
          src: url('x.woff2') format('woff2'),
               url('x.woff') format('woff')
        }",
       "@font-face {
-         src: url('x.woff2') format('woff2'), url('x.woff') format('woff');
+         src: url('x.woff2') format('woff2') , url('x.woff') format('woff');
        }
        ")
   }
@@ -136,29 +154,16 @@
           color: #333
         }
       }",
-     "div {
+     "div, h3 {
         color: #00f;
         font-weight: bold;
       }
-      div p {
-        color: #333;
-      }
-      div ul {
-        color: #333;
-      }
-      h3 {
-        color: #00f;
-        font-weight: bold;
-      }
-      h3 p {
-        color: #333;
-      }
-      h3 ul {
+      div p, div ul, h3 p, h3 ul {
         color: #333;
       }
       ")
 
-   verifyCss(
+    verifyCss(
      "div {
         color: #00f
         p {
@@ -184,7 +189,7 @@
 // Self
 //////////////////////////////////////////////////////////////////////////
 
- Void testSelf()
+  Void testSelf()
   {
     verifyCss(
       "div.foo {
@@ -220,8 +225,25 @@
         }
         ")
 
+    verifyCss(
+      "div.foo {
+         h1 {
+           span.bar {
+             &:hover { color: green }
+           }
+         }
+         &:hover p { padding: 1em }
+       }",
+       "div.foo h1 span.bar:hover {
+          color: green;
+        }
+        div.foo:hover p {
+          padding: 1em;
+        }
+        ")
+
     // cannot use self at root
-    verifyErr(Err#) { Fass.compileStr("& { color: red }") }
+    verifyErr(FassCompileErr#) { Fass.compileStr("& { color: red }") }
   }
 
 /////////////////////////////////////////////////////////////////////////
@@ -231,11 +253,11 @@
   Void testVars()
   {
     verifyCss(
-      "\$foo: 10px",
+      "foo := 10px",
       "")
 
     verifyCss(
-      "\$foo: 10px
+      "foo := 10px
          p { padding: \$foo }",
       "p {
          padding: 10px;
@@ -243,8 +265,8 @@
        ")
 
     verifyCss(
-      "\$foo: 10px
-       \$bar: #f00
+      "foo := 10px
+       bar := #f00
          p {
            padding: \$foo
            span { color: \$bar }
@@ -257,12 +279,17 @@
        }
        ")
 
-
-    // var already defined
-    verifyErr(Err#) {
-      x := c("\$foo: 10px
-              \$foo: #f00")
+    // var not found defined
+    verifyErr(FassCompileErr#) {
+      x := c("foo := 10px
+              p { color: \$bar }")
     }
+
+    // // var already defined
+    // verifyErr(FassCompileErr#) {
+    //   x := c("foo := 10px
+    //           foo := #f00")
+    // }
   }
 
 //////////////////////////////////////////////////////////////////////////
@@ -305,7 +332,7 @@
   Void testMixedExprs()
   {
     verifyCss(
-     "\$foo: #f00
+     "foo := #f00
       div { border: 1px solid \$foo }",
      "div {
         border: 1px solid #f00;
@@ -313,22 +340,20 @@
       ")
 
     verifyCss(
-     "\$x: 25px
-      div { height: calc(100% - \$x) }",
+     "x := 25px
+      div { height: calc(100% - \${x}) }",
      "div {
-        height: calc(100% - 25px);
+        height: calc(100% - 25px );
       }
       ")
-
-// TODO FIXIT
-    // verifyCss(
-    //  "\$x: 85%
-    //   \$y: 20px
-    //   div { height: calc(\$x - \$y) }",
-    //  "div {
-    //     height: calc(80% - 20px);
-    //   }
-    //   ")
+    verifyCss(
+     "x := 85%
+      y := 20px
+      div { height: calc(\${x} - \${y}) }",
+     "div {
+        height: calc( 85% - 20px );
+      }
+      ")
   }
 
 //////////////////////////////////////////////////////////////////////////
@@ -347,7 +372,7 @@
     }
 
     verifyCss(
-      "@use '_a.fass'
+      "@using _a
        h1 { color: #333 }",
       "p {
          color: #777;
@@ -358,8 +383,8 @@
        ", u)
 
     verifyCss(
-      "@use '_a.fass'
-       @use '_b.fass'
+      "@using _a
+       @using _b
        h1 { color: #333 }",
       "p {
          color: #777;
@@ -375,10 +400,10 @@
 
   Void testUseVar()
   {
-    a := "\$a1: #777
-          p { color: \$a1 }"
-    b := "\$b1: 2em 0
-          ul { margin: \$b1 }"
+    a := "a1 := #777
+          p { color: \${a1} }"
+    b := "b1 := 2em 0
+          ul { margin: \${b1} }"
     u := |n->InStream|
     {
       if (n == "_a.fass") return a.in
@@ -387,7 +412,7 @@
     }
 
     verifyCss(
-      "@use '_a.fass'
+      "@using _a
        h1 {
         color: #333
         border-color: #444
@@ -403,10 +428,10 @@
        ", u)
 
     verifyCss(
-      "@use '_a.fass'
+      "@using _a
        h1 {
         color: #333
-        border-color: \$a1
+        border-color: \${a1}
        }
        ",
       "p {
@@ -419,12 +444,12 @@
        ", u)
 
     verifyCss(
-      "@use '_a.fass'
-       @use '_b.fass'
+      "@using _a
+       @using _b
        h1 {
          color: #333
-         border-color: \$a1
-         padding: \$b1
+         border-color: \${a1}
+         padding: \${b1}
        }",
       "p {
          color: #777;
@@ -442,10 +467,10 @@
 
   Void testUseRecursive()
   {
-    a := "\$a1: #777
-          \$a2: 2em 0
+    a := "a1 := #777
+          a2 := 2em 0
           p { color: \$a1 }"
-    b := "@use '_a.fass'
+    b := "@using '_a.fass'
           ul { margin: \$a2 }"
     u := |n->InStream|
     {
@@ -455,8 +480,8 @@
     }
 
     verifyCss(
-      "@use '_a.fass'
-       @use '_b.fass'
+      "@using '_a.fass'
+       @using '_b.fass'
        h1 {
         color: #333
         border-color: \$a1
@@ -489,9 +514,15 @@
     else
     {
       buf := StrBuf()
-      Fass.compile(fass.in, buf.out, onUse)
+      Fass.compile("test", fass.in, buf.out, onUse)
       css = buf.toStr
     }
+// echo("-------------------------------")
+// echo("# FASS >")
+// echo("#-------")
+// echo(fass)
+// echo("# CSS >")
+// echo("#------")
 // echo(css)
     return css
   }
