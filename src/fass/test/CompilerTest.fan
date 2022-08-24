@@ -101,6 +101,10 @@
          src: url('x.woff2') format('woff2') , url('x.woff') format('woff');
        }
        ")
+
+// TODO FIXIT
+    // // prop declare outside ruleset
+    // verifyErr(FassCompilerErr#) { "font-weight: bold" }
   }
 
 //////////////////////////////////////////////////////////////////////////
