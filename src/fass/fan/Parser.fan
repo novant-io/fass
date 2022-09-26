@@ -70,7 +70,7 @@
     {
       defs := Def[,]
       token = tokenizer.next
-      while (token.isTerm || token.isVar)
+      while (token.isTerm || token.isVar || token.isComma)
       {
         defs.add(parseExprDef(token))
         token = tokenizer.next

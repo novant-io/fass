@@ -270,7 +270,7 @@
 
     verifyCss(
       "foo := 10px
-         p { padding: \$foo }",
+       p { padding: \$foo }",
       "p {
          padding: 10px;
        }
@@ -288,6 +288,14 @@
        }
        p span {
          color: #f00;
+       }
+       ")
+
+   verifyCss(
+      "foo := hsl(212, 73%, 59%)
+       p { color: \$foo }",
+      "p {
+         color: hsl(212 , 73% , 59%);
        }
        ")
 

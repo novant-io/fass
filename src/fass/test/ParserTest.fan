@@ -348,6 +348,9 @@
     verifyDeclare(d, [2,0], "padding", ["foo"])
     verifyRuleset(d, [2,1], ["span"])
     verifyDeclare(d, [2,1,0], "color", ["bar"])
+
+    d = p("foo := hsl(212, 73%, 59%)")
+    verifyAssign( d, [0], "foo", ["hsl(212", ",", "73%", ",", "59%)"])
   }
 
 //////////////////////////////////////////////////////////////////////////
