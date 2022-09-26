@@ -243,6 +243,9 @@
     d = p("a { height: calc(100% - 25px) }")
     verifyDeclare(d, [0,0], "height", ["calc(100%", "-", "25px)"])
 
+    d = p("a { color: hsl(212, 73%, 59%) }")
+    verifyDeclare(d, [0,0], "color", ["hsl(212", ",", "73%", ",", "59%)"])
+
     d = p("a { font-family: 'Inter' }")
     verifyDeclare(d, [0,0], "font-family", ["'Inter'"])
 

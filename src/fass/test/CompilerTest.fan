@@ -92,6 +92,14 @@
        }
        ")
 
+// TODO FIXIT: collapse whitespace?
+    verifyCss(
+      "div { color: hsl(212, 73%, 59%) }",
+      "div {
+         color: hsl(212 , 73% , 59%);
+       }
+       ")
+
     verifyCss(
       "@font-face {
          src: url('x.woff2') format('woff2'),
