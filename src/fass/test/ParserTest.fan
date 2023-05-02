@@ -59,6 +59,19 @@
     d = p("foo := #f00; bar := 10px")
     verifyAssign(d, [0], "foo", ["#f00"])
     verifyAssign(d, [1], "bar", ["10px"])
+
+    d = p("foo_bar := #f00
+           foo_123 := #ff0
+           f12bar_ := #0f0
+           _foobar := #0ff")
+    verifyAssign(d, [0], "foo_bar", ["#f00"])
+    verifyAssign(d, [1], "foo_123", ["#ff0"])
+    verifyAssign(d, [2], "f12bar_", ["#0f0"])
+    verifyAssign(d, [3], "_foobar", ["#0ff"])
+
+    verifyErr(FassCompileErr#) { p("foo&bar := #f00") }
+    verifyErr(FassCompileErr#) { p("0123    := #f00") }
+    verifyErr(FassCompileErr#) { p("0_foo   := #f00") }
   }
 
 //////////////////////////////////////////////////////////////////////////

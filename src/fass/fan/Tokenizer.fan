@@ -243,8 +243,8 @@ using util
   ])
 
   ** Return 'true' if char is a var name char.
-  private Bool isVarChar(Int ch) { varChars[ch] != null }
-  private const Int:Int varChars := [:].with {
+  internal static Bool isVarChar(Int ch) { varChars[ch] != null }
+  private static const Int:Int varChars := [:].with {
     it.set('_', '_')
     it.setList(('0'..'9').toList)
     it.setList(('a'..'z').toList)

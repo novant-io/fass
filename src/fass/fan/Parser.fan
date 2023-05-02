@@ -76,6 +76,9 @@
         token = tokenizer.next
       }
       tokenizer.push(token)
+      // validate var name
+      if (orig.val.any |ch| { !Tokenizer.isVarChar(ch) } || orig.val[0].isDigit)
+        throw err(orig, "Illegal variable name '${orig.val}")
       expr := ExprDef   { it.loc=defs.first.loc; it.defs=defs }
       cur.add(AssignDef { it.loc=orig.loc; it.name=orig.val; it.expr=expr })
       return cur
