@@ -156,8 +156,13 @@ using util
       if (bracket) ch = read
       while (true)
       {
+        // NOTE: var tokenizing is stricter here than an assign
+        //       statement, since we do not have context at
+        //       tokenization time if its a selector term or a
+        //       variable name; but we need to identify var tokens
+        //       properly to distinguish from things like ')' chars
         if (bracket && ch == '}') break
-        if (isDelim(ch)) { unread(ch); break }
+        if (isDelim(ch) || !isVarChar(ch)) { unread(ch); break }
         buf.addChar(ch)
         ch = read
       }
@@ -236,6 +241,15 @@ using util
   private const Int:Int delims := [:].setList([
     0, ';', '\n', ' ',  ',', '{', '}', '\$',
   ])
+
+  ** Return 'true' if char is a var name char.
+  private Bool isVarChar(Int ch) { varChars[ch] != null }
+  private const Int:Int varChars := [:].with {
+    it.set('_', '_')
+    it.setList(('0'..'9').toList)
+    it.setList(('a'..'z').toList)
+    it.setList(('A'..'Z').toList)
+  }
 
   private const Obj file           // file name for FileLoc ref
   private InStream in              // source instream

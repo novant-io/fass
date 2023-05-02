@@ -119,6 +119,18 @@
     verifyKidSize(d, [,], 1)
     verifyRuleset(d, [0], ["*:nth-child(2)"])
 
+    d = p("@media {}")
+    verifyKidSize(d, [,], 1)
+    verifyRuleset(d, [0], ["@media"])
+
+    d = p("@media only screen {}")
+    verifyKidSize(d, [,], 1)
+    verifyRuleset(d, [0], ["@media only screen"])
+
+    d = p("@media only screen (max-width: 480px) {}")
+    verifyKidSize(d, [,], 1)
+    verifyRuleset(d, [0], ["@media only screen (max-width: 480px)"])
+
     d = p("li > span {}")
     verifyKidSize(d, [,], 1)
     verifyRuleset(d, [0], ["li > span"])
@@ -351,6 +363,12 @@
 
     d = p("foo := hsl(212, 73%, 59%)")
     verifyAssign( d, [0], "foo", ["hsl(212", ",", "73%", ",", "59%)"])
+
+    // TODO
+    // d = p("width := 480px
+    //        @media only screen (max-width: \$width) {}")
+    // verifyAssign( d, [0], "width", ["480px"])
+    // verifyRuleset(d, [1], ["@media only screen (max-width:", "width", ")"])
   }
 
 //////////////////////////////////////////////////////////////////////////

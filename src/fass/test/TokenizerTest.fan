@@ -145,6 +145,16 @@
     verifyToken(v[5], TokenType.term,       ".svg')")
     verifyToken(v[6], TokenType.closeBrace, "}")
 
+    v = t("a { foo: url(\${bar}) }")
+     verifyEq(v.size, 7)
+    verifyToken(v[0], TokenType.term,       "a")
+    verifyToken(v[1], TokenType.openBrace,  "{")
+    verifyToken(v[2], TokenType.term,       "foo:")
+    verifyToken(v[3], TokenType.term,       "url(")
+    verifyToken(v[4], TokenType.var,        "bar")
+    verifyToken(v[5], TokenType.term,       ")")
+    verifyToken(v[6], TokenType.closeBrace, "}")
+
     v = t("a { font-family: 'Inter-\${bar}' }")
     verifyEq(v.size, 5)
     verifyToken(v[0], TokenType.term,       "a")
@@ -152,6 +162,30 @@
     verifyToken(v[2], TokenType.term,       "font-family:")
     verifyToken(v[3], TokenType.term,       "'Inter-\${bar}'")
     verifyToken(v[4], TokenType.closeBrace, "}")
+
+    // space b/w : + var
+    v = t("@media only screen (max-width: \$width) {}")
+    verifyEq(v.size, 8)
+    verifyToken(v[0], TokenType.term,       "@media")
+    verifyToken(v[1], TokenType.term,       "only")
+    verifyToken(v[2], TokenType.term,       "screen")
+    verifyToken(v[3], TokenType.term,       "(max-width:")
+    verifyToken(v[4], TokenType.var,        "width")
+    verifyToken(v[5], TokenType.term,       ")")
+    verifyToken(v[6], TokenType.openBrace,  "{")
+    verifyToken(v[7], TokenType.closeBrace, "}")
+
+    // no space b/w : + var
+    v = t("@media only screen (max-width:\$width) {}")
+    verifyEq(v.size, 8)
+    verifyToken(v[0], TokenType.term,       "@media")
+    verifyToken(v[1], TokenType.term,       "only")
+    verifyToken(v[2], TokenType.term,       "screen")
+    verifyToken(v[3], TokenType.term,       "(max-width:")
+    verifyToken(v[4], TokenType.var,        "width")
+    verifyToken(v[5], TokenType.term,       ")")
+    verifyToken(v[6], TokenType.openBrace,  "{")
+    verifyToken(v[7], TokenType.closeBrace, "}")
   }
 
 //////////////////////////////////////////////////////////////////////////
