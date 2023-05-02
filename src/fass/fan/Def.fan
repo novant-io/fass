@@ -130,6 +130,35 @@ using util
 }
 
 *************************************************************************
+** AtRuleDef
+*************************************************************************
+
+@Js internal class AtRuleDef : Def
+{
+  new make(|This| f)
+  {
+    f(this)
+    this.conditions.each |c| { c.parent = this }
+  }
+
+  const Str identifier  // for now includes leading @
+  Def[] conditions
+
+  override Void dump(OutStream out, Int indent)
+  {
+    out.print(Str.spaces(indent)).print(identifier)
+    conditions.each |c|
+    {
+      out.print(" ")
+      c.dump(out, 0)
+    }
+    out.printLine(" { [$loc]")
+    children.each |k| { k.dump(out, indent+2) }
+    out.print(Str.spaces(indent)).printLine("}")
+  }
+}
+
+*************************************************************************
 ** SelectorDef
 *************************************************************************
 

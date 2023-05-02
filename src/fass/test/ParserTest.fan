@@ -132,18 +132,6 @@
     verifyKidSize(d, [,], 1)
     verifyRuleset(d, [0], ["*:nth-child(2)"])
 
-    d = p("@media {}")
-    verifyKidSize(d, [,], 1)
-    verifyRuleset(d, [0], ["@media"])
-
-    d = p("@media only screen {}")
-    verifyKidSize(d, [,], 1)
-    verifyRuleset(d, [0], ["@media only screen"])
-
-    d = p("@media only screen (max-width: 480px) {}")
-    verifyKidSize(d, [,], 1)
-    verifyRuleset(d, [0], ["@media only screen (max-width: 480px)"])
-
     d = p("li > span {}")
     verifyKidSize(d, [,], 1)
     verifyRuleset(d, [0], ["li > span"])
@@ -223,6 +211,38 @@
     verifyDeclare(d, [0,0], "color",       ["#00f"])
     verifyDeclare(d, [0,1], "font-weight", ["bold"])
 
+    // missing newline/semicolon
+    verifyErr(FassCompileErr#) { x := p("div { color: #00f font-weight: bold }") }
+  }
+
+//////////////////////////////////////////////////////////////////////////
+// AtRules
+//////////////////////////////////////////////////////////////////////////
+
+  Void testAtRule()
+  {
+    d := p("@media {}")
+    verifyKidSize(d, [,], 1)
+    verifyAtRule(d, [0], "@media", "")
+
+    d = p("@media only screen {}")
+    verifyKidSize(d, [,], 1)
+    verifyAtRule(d, [0], "@media", "only screen")
+
+    d = p("@media only screen (max-width: 480px) {
+             footer {
+               color: #f00
+               background: #00f
+             }
+           }")
+    verifyKidSize(d, [,], 1)
+    verifyAtRule(d, [0], "@media", "only screen (max-width: 480px)")
+    verifyKidSize(d, [0], 1)
+    verifyRuleset(d, [0,0], ["footer"])
+    verifyKidSize(d, [0,0], 2)
+    verifyDeclare(d, [0,0,0], "color", ["#f00"])
+    verifyDeclare(d, [0,0,1], "background", ["#00f"])
+
     d = p("@font-face {
              font-family: 'Inter'
              font-style:  normal
@@ -230,15 +250,12 @@
              src: url('../font/Inter-Regular.woff2') format('woff2')
            }")
     verifyKidSize(d, [,], 1)
-    verifyRuleset(d, [0], ["@font-face"])
+    verifyAtRule(d, [0], "@font-face", "")
     verifyKidSize(d, [0], 4)
     verifyDeclare(d, [0,0], "font-family", ["'Inter'"])
     verifyDeclare(d, [0,1], "font-style",  ["normal"])
     verifyDeclare(d, [0,2], "font-weight", ["400"])
     verifyDeclare(d, [0,3], "src", ["url('../font/Inter-Regular.woff2')", "format('woff2')"])
-
-    // missing newline/semicolon
-    verifyErr(FassCompileErr#) { x := p("div { color: #00f font-weight: bold }") }
   }
 
 //////////////////////////////////////////////////////////////////////////
@@ -379,8 +396,8 @@
 
     d = p("width := 480px
            @media only screen (max-width: \$width) {}")
-    verifyAssign( d, [0], "width", ["480px"])
-    verifyRuleset(d, [1], ["@media only screen (max-width: \$width )"])
+    verifyAssign(d, [0], "width", ["480px"])
+    verifyAtRule(d, [1], "@media", "only screen (max-width: \$width )")
   }
 
 //////////////////////////////////////////////////////////////////////////
@@ -559,6 +576,22 @@
     verifyEq(d.typeof, AssignDef#)
     verifyEq(d->name, name)
     verifyExpr(d->expr, vals)
+  }
+
+  private Void verifyAtRule(Def root, Int[] path, Str identifer, Str conditions)
+  {
+    d := descend(root, path)
+    verifyEq(d.typeof, AtRuleDef#)
+    verifyEq(d->identifier, identifer)
+    Def[] conds := d->conditions
+    buf := StrBuf()
+    conds.each |c|
+    {
+      if (c is LiteralDef) buf.join(c->val, " ")
+      else if (c is VarDef) buf.join("\$${c->name}", " ")
+      else fail()
+    }
+    verifyEq(buf.toStr, conditions)
   }
 
   private Void verifyRuleset(Def root, Int[] path, Str[] selectors)

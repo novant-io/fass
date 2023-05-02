@@ -258,6 +258,41 @@
     verifyErr(FassCompileErr#) { Fass.compileStr("& { color: red }") }
   }
 
+//////////////////////////////////////////////////////////////////////////
+// AtRules
+//////////////////////////////////////////////////////////////////////////
+
+  Void testAtRules()
+  {
+    // NOTE: compiler does not indent @atrule blocks
+
+    verifyCss(
+       "@media only screen (max-width: 200px) {
+          p { color: #f00 }
+        }",
+       "@media only screen (max-width: 200px) {
+        p {
+          color: #f00;
+        }
+        }
+        ")
+
+    verifyCss(
+       "@media only screen (max-width: 200px) {
+          header,footer {
+            span {
+              color: #fff
+            }
+          }
+        }",
+       "@media only screen (max-width: 200px) {
+        header span, footer span {
+          color: #fff;
+        }
+        }
+        ")
+ }
+
 /////////////////////////////////////////////////////////////////////////
 // Vars
 //////////////////////////////////////////////////////////////////////////
@@ -301,9 +336,13 @@
 
    verifyCss(
       "width := 480px
-       @media only screen (max-width: \$width) { color: #f00 }",
+       @media only screen (max-width: \$width) {
+          footer {color: #f00 }
+       }",
       "@media only screen (max-width: 480px ) {
+       footer {
          color: #f00;
+       }
        }
        ")
 

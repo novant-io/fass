@@ -48,6 +48,22 @@
         // if (test != null && test.parent != a)
         //   throw err("Variable arleady defined '${a.name}'", a)
 
+      case AtRuleDef#:
+        AtRuleDef r := def
+        // only render rule if contains child rules
+        if (r.children.size > 0)
+        {
+          out.print(r.identifier)
+          r.conditions.each |c|
+          {
+            out.print(" ")
+            compileDef(c, out)
+          }
+          out.printLine(" {")
+          r.children.each |k| { compileDef(k, out) }
+          out.printLine("}")
+        }
+
       case RulesetDef#:
         RulesetDef r := def
         decls := r.children.findType(DeclareDef#)

@@ -96,21 +96,39 @@
 
     if (token.isOpenBrace)
     {
-      // parse as ruleset selector list
-      sels := [SelectorDef {}]
-      acc.each |t,i|
+      if (isAtRule(acc.first))
       {
-        if (t.isComma) sels.add(SelectorDef {})
-        else
+        // parse as at-rule
+        ident := acc.first.val
+        conds := Def[,]
+        acc.eachRange(1..-1) |t|
         {
-          if (t.isTerm) sels.last.parts.add(LiteralDef { it.val=t.val })
-          else if (t.isVar) sels.last.parts.add(VarDef { it.name=t.val; it.parent=sels.last })
+          if (t.isTerm) conds.add(LiteralDef { it.val=t.val })
+          else if (t.isVar) conds.add(VarDef { it.name=t.val })
           else throw unexpectedToken(t)
         }
+        atrule := AtRuleDef { it.loc=orig.loc; it.identifier=ident; it.conditions=conds }
+        cur.add(atrule)
+        return atrule
       }
-      ruleset := RulesetDef { it.loc=orig.loc; it.selectors=sels }
-      cur.add(ruleset)
-      return ruleset
+      else
+      {
+        // parse as ruleset selector list
+        sels := [SelectorDef {}]
+        acc.each |t,i|
+        {
+          if (t.isComma) sels.add(SelectorDef {})
+          else
+          {
+            if (t.isTerm) sels.last.parts.add(LiteralDef { it.val=t.val })
+            else if (t.isVar) sels.last.parts.add(VarDef { it.name=t.val; it.parent=sels.last })
+            else throw unexpectedToken(t)
+          }
+        }
+        ruleset := RulesetDef { it.loc=orig.loc; it.selectors=sels }
+        cur.add(ruleset)
+        return ruleset
+      }
     }
     else if (token.isDelim)
     {
@@ -175,6 +193,15 @@
     if (token.isVar)  return VarDef { it.loc=token.loc; it.name=token.val }
     throw unexpectedToken(token)
   }
+
+  ** Is this token a supported at-rule?
+  private Bool isAtRule(Token token)
+  {
+    token.isTerm && atRules[token.val] != null
+  }
+  private static const Str:Str atRules := [:].setList([
+    "@font-face", "@media"
+  ])
 
   ** Err for unexpected token.
   private Err unexpectedToken(Token token)
