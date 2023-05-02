@@ -377,11 +377,10 @@
     d = p("foo := hsl(212, 73%, 59%)")
     verifyAssign( d, [0], "foo", ["hsl(212", ",", "73%", ",", "59%)"])
 
-    // TODO
-    // d = p("width := 480px
-    //        @media only screen (max-width: \$width) {}")
-    // verifyAssign( d, [0], "width", ["480px"])
-    // verifyRuleset(d, [1], ["@media only screen (max-width:", "width", ")"])
+    d = p("width := 480px
+           @media only screen (max-width: \$width) {}")
+    verifyAssign( d, [0], "width", ["480px"])
+    verifyRuleset(d, [1], ["@media only screen (max-width: \$width )"])
   }
 
 //////////////////////////////////////////////////////////////////////////
@@ -566,7 +565,18 @@
   {
     d := descend(root, path)
     verifyEq(d.typeof, RulesetDef#)
-    verifyEq(d->selectors, selectors)
+    SelectorDef[] sels := d->selectors
+    sels.each |s,i|
+    {
+      buf := StrBuf()
+      s.parts.each |x|
+      {
+        if (x is LiteralDef) buf.join(x->val, " ")
+        else if (x is VarDef) buf.join("\$${x->name}", " ")
+        else fail()
+      }
+      verifyEq(buf.toStr, selectors[i])
+    }
   }
 
   private Void verifyDeclare(Def root, Int[] path, Str prop, Str[] vals)

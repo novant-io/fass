@@ -97,12 +97,16 @@
     if (token.isOpenBrace)
     {
       // parse as ruleset selector list
-      sels := Str[,]
+      sels := [SelectorDef {}]
       acc.each |t,i|
       {
-        if (t.isComma) sels.add("")
-        else if (i == 0) sels.add(t.val)
-        else sels[-1] = "${sels[-1]} ${t.val}".trim
+        if (t.isComma) sels.add(SelectorDef {})
+        else
+        {
+          if (t.isTerm) sels.last.parts.add(LiteralDef { it.val=t.val })
+          else if (t.isVar) sels.last.parts.add(VarDef { it.name=t.val; it.parent=sels.last })
+          else throw unexpectedToken(t)
+        }
       }
       ruleset := RulesetDef { it.loc=orig.loc; it.selectors=sels }
       cur.add(ruleset)

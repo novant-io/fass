@@ -299,6 +299,14 @@
        }
        ")
 
+   verifyCss(
+      "width := 480px
+       @media only screen (max-width: \$width) { color: #f00 }",
+      "@media only screen (max-width: 480px ) {
+         color: #f00;
+       }
+       ")
+
     // var not found defined
     verifyErr(FassCompileErr#) {
       x := c("foo := 10px

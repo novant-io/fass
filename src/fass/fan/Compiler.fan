@@ -54,15 +54,27 @@
         // only render rule if declares props
         if (decls.size > 0)
         {
-          Str[]? fsel
-          try { fsel=r.flattenSels }
-          catch (Err e) throw err(e.msg, r)
-          out.print(fsel.join(", ")).printLine(" {")
+          flattenSelectors(r).each |sel,i|
+          {
+            if (i > 0) out.print(", ")
+            out.print(sel)
+          }
+          out.printLine(" {")
           decls.each |k| { compileDef(k, out) }
           out.printLine("}")
         }
         kids := r.children.findType(RulesetDef#)
         kids.each |k| { compileDef(k, out) }
+
+      case SelectorDef#:
+        SelectorDef s := def
+        s.parts.each |p,i|
+        {
+          if (i > 0) out.print(" ")
+          if (p is LiteralDef) compileDef(p, out)
+          else if (p is VarDef) compileDef(p, out)
+          else throw unexpectedDef(p)
+        }
 
       case DeclareDef#:
         DeclareDef d := def
@@ -76,27 +88,90 @@
         e.defs.each |k,i|
         {
           if (i > 0) buf.addChar(' ')
-          if (k is LiteralDef)
-          {
-            LiteralDef l := k
-            buf.add(l.val)
-          }
-          else if (k is VarDef)
-          {
-            VarDef v := k
-            ExprDef? x := e.var(v.name)
-            if (x == null) throw err("Var not found '${v.name}'", k)
-            compileDef(x, buf.out)
-          }
+          if (k is LiteralDef) compileDef(k, buf.out)
+          else if (k is VarDef) compileDef(k, buf.out)
           else throw unexpectedDef(k)
         }
         out.print(buf.toStr.split.join(" "))  // filter excess whitepsace
+
+      case LiteralDef#:
+        LiteralDef l := def
+        out.print(l.val)
+
+      case VarDef#:
+        VarDef v := def
+        ExprDef? x := def.var(v.name)
+        if (x == null) throw err("Var not found '${v.name}'", v)
+        compileDef(x, out)
 
       default: throw err("Unsupported node tyoe '${def.typeof}'", def)
     }
   }
 
- ** Err for unexpected def.
+  ** Explode a ruleset into a list of flattened compiled selectors.
+  private Str[] flattenSelectors(RulesetDef r)
+  {
+    // walk parents to get ruleset path
+    path := [r]
+    def  := r.parent
+    while (def is RulesetDef)
+    {
+      path.add(def)
+      def = def.parent
+    }
+
+    // then flatten
+    acc := Str[,]
+    doFlatten(acc, path.reverse, 0, "")
+    return acc
+  }
+
+  private Void doFlatten(Str[] acc, RulesetDef[] path, Int depth, Str prefix)
+  {
+    // create a flattened def for each selector
+    def := path[depth]
+    def.selectors.each |sel|
+    {
+      flat := StrBuf()
+
+      // first compile selector list to Str#
+      cbuf := StrBuf()
+      sel.parts.each |p,i|
+      {
+        if (i > 0) cbuf.addChar(' ')
+        compileDef(p, cbuf.out)
+      }
+      csel := cbuf.toStr
+
+      if (csel.startsWith("&"))
+      {
+        // cannot use self at root
+        if (depth == 0) throw err("Cannot reference & at root level", sel)
+
+        // append pusedo-class directly to prefix
+        flat.add(prefix)
+        if (csel.size > 1) flat.add(csel[1..-1])
+      }
+      else
+      {
+        // otherwise append selector to qualified selector prefix
+        flat.add(prefix).join(csel, " ")
+      }
+
+      if (depth == path.size-1)
+      {
+        // hit a leaf node, add flattened name
+        acc.add(flat.toStr)
+      }
+      else
+      {
+        // else traverse path
+        doFlatten(acc, path, depth+1, flat.toStr)
+      }
+    }
+  }
+
+  ** Err for unexpected def.
   private Err unexpectedDef(Def def)
   {
     err("Unexpected node '${def.typeof}'", def)

@@ -130,35 +130,49 @@ using util
 }
 
 *************************************************************************
+** SelectorDef
+*************************************************************************
+
+@Js internal class SelectorDef : Def
+{
+  new make(|This| f) { f(this) }
+
+  Def[] parts := Def[,]
+
+  override Void dump(OutStream out, Int indent)
+  {
+    out.print(Str.spaces(indent))
+    parts.each |p,i|
+    {
+      if (i > 0) out.print(" ")
+      p.dump(out, 0)
+    }
+  }
+}
+
+*************************************************************************
 ** RulesetDef
 *************************************************************************
 
 @Js internal class RulesetDef : Def
 {
-  new make(|This| f) { f(this) }
-
-  const Str[] selectors
-
-  ** Return flattened selector names.
-  Str[] flattenSels()
+  new make(|This| f)
   {
-    // get ruleset path segments
-    path := [this]
-    def  := parent
-    while (def is RulesetDef)
-    {
-      path.add(def)
-      def = def.parent
-    }
-
-    // flatten
-    return Flatten.flatten(path.reverse)
+    f(this)
+    this.selectors.each |s| { s.parent = this }
   }
+
+  SelectorDef[] selectors
 
   override Void dump(OutStream out, Int indent)
   {
-    out.print(Str.spaces(indent))
-    out.print(selectors.join(", ")).printLine(" { [$loc]")
+    selectors.each |s,i|
+    {
+      if (i > 0) out.printLine(",")
+      out.print(Str.spaces(indent))
+      s.dump(out, 0)
+    }
+    out.printLine(" { [$loc]")
     children.each |k| { k.dump(out, indent+2) }
     out.print(Str.spaces(indent)).printLine("}")
   }
