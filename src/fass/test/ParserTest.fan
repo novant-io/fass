@@ -136,6 +136,14 @@
     verifyKidSize(d, [,], 1)
     verifyRuleset(d, [0], ["li > span"])
 
+    d = p("input[type=text] {}")
+    verifyKidSize(d, [,], 1)
+    verifyRuleset(d, [0], ["input[type=text]"])
+
+    d = p("#foo[data-bar=cool] {}")
+    verifyKidSize(d, [,], 1)
+    verifyRuleset(d, [0], ["#foo[data-bar=cool]"])
+
     // test sub-tokenize
     d = p("li:hover p span {}")
     verifyKidSize(d, [,], 1)
