@@ -200,7 +200,7 @@
     token.isTerm && atRules[token.val] != null
   }
   private static const Str:Str atRules := [:].setList([
-    "@font-face", "@media"
+    "@font-face", "@keyframes", "@media"
   ])
 
   ** Err for unexpected token.

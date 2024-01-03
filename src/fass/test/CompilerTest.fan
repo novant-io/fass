@@ -291,6 +291,25 @@
         }
         }
         ")
+
+    verifyCss(
+       "@keyframes frame {
+          0%   { transform: scale(0) }
+          50%  { transform: scale(0.5) }
+          100% { transform: scale(1) }
+        }",
+       "@keyframes frame {
+        0% {
+          transform: scale(0);
+        }
+        50% {
+          transform: scale(0.5);
+        }
+        100% {
+          transform: scale(1);
+        }
+        }
+        ")
  }
 
 /////////////////////////////////////////////////////////////////////////

@@ -264,6 +264,21 @@
     verifyDeclare(d, [0,1], "font-style",  ["normal"])
     verifyDeclare(d, [0,2], "font-weight", ["400"])
     verifyDeclare(d, [0,3], "src", ["url('../font/Inter-Regular.woff2')", "format('woff2')"])
+
+    d = p("@keyframes frame {
+             0%   { transform: scale(0) }
+             50%  { transform: scale(0.5) }
+             100% { transform: scale(1) }
+           }")
+    verifyKidSize(d, [,], 1)
+    verifyAtRule(d, [0], "@keyframes", "frame")
+    verifyKidSize(d, [0], 3)
+    verifyRuleset(d, [0,0], ["0%"])
+    verifyRuleset(d, [0,1], ["50%"])
+    verifyRuleset(d, [0,2], ["100%"])
+    verifyDeclare(d, [0,0,0], "transform", ["scale(0)"])
+    verifyDeclare(d, [0,1,0], "transform", ["scale(0.5)"])
+    verifyDeclare(d, [0,2,0], "transform", ["scale(1)"])
   }
 
 //////////////////////////////////////////////////////////////////////////
